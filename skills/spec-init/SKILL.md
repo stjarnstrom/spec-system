@@ -42,12 +42,12 @@ adopts nothing — adoption is its own act, per FORMAT.md.
    for co-change to read and nothing for spec-adopt to describe — skip steps
    5 and 6 and invert the flow: capabilities come from the user's intent, and
    each first spec is written as a **target**, not a description. Its
-   registry entry carries `version: 1, pinned: 0` with a `plan:` — the
-   version/pin gap is the record that the code does not exist yet, `check`
-   notes (rather than rejects) owned paths not yet on disk while the gap is
-   open, and spec-implement builds test-first against the plan, moving the
-   pin to 1 when the behaviour is real and evidenced. Keep the entry's
-   status `unspecified` until that first pin move lands `adopted`.
+   registry entry carries `pinned: none` with a `plan:` — the missing pin is
+   the record that the code does not exist yet, `check` notes (rather than
+   rejects) owned paths not yet on disk while it is open, and spec-implement
+   builds test-first against the plan, running `registry.mjs pin` when the
+   behaviour is real and evidenced. Keep the entry's status `unspecified`
+   until that first pin move lands `adopted`.
 
 5. **Propose boundaries from the history.** Run
    `python3 ${CLAUDE_PLUGIN_ROOT}/substrate/cochange.py . --threshold 0.35`
@@ -73,7 +73,7 @@ adopts nothing — adoption is its own act, per FORMAT.md.
 ## Rules
 
 - Scaffold only: no spec files, no pins, no behaviour changes. (The
-  greenfield fork's target specs are the one exception — pinned 0, they
+  greenfield fork's target specs are the one exception — pinned `none`, they
   assert nothing about code.)
 - Never overwrite an existing specs/ — this skill initialises, it does not
   upgrade. (Upgrading a vendored registry.mjs is a manual copy, compared by

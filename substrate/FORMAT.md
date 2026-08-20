@@ -28,7 +28,6 @@ being readable as truth.
 ```yaml
 ---
 spec: sim-ingest          # slug, matches the filename
-version: 2                # integer, incremented by an amendment
 covers: |                 # what this capability is responsible for
 not-covered: |            # behaviour deliberately outside it, no owner implied
 depends-on:               # capabilities whose contract this one consumes
@@ -48,7 +47,7 @@ edge exists.
 
 ## Status and pins
 
-`status` and both versions live in the registry, never in the spec's frontmatter —
+`status` and the pin live in the registry, never in the spec's frontmatter —
 one home, so they cannot drift. `status` describes the spec, never the evidence
 behind it.
 
@@ -60,21 +59,34 @@ behind it.
 | `contested` | the boundary itself is not agreed; do not pin code to it |
 | `unspecified by design` | no spec will be written; behaviour is generated, delegated, or deliberately unconstrained |
 
-The registry carries two versions. `version` is the spec's own — what the file
-says. `pinned` is what the code satisfies. **They are equal when there is no
-outstanding work, and `version` runs ahead of `pinned` for exactly as long as an
-amendment is unimplemented.** That gap is the backlog, and it is the only place
-the system records that the spec is currently a target rather than a description.
-Moving the pin is the last act of implementing, never part of amending.
+Spec files carry no version number — git holds their history. The registry
+pins each capability to **content**: `pinned` is the hash of the spec file the
+code actually satisfies (`node specs/registry.mjs pin <capability>` sets it;
+it equals `git hash-object` on the file). Three states, and they are the whole
+model:
+
+| `pinned` | meaning |
+|---|---|
+| equals the file's current hash | in sync — no outstanding work |
+| differs from it | an amendment is written and unimplemented — the registry must name a `plan:` |
+| `none` | a target spec; the code does not exist yet |
+
+**The file/pin mismatch is the backlog**, and it is the only place the system
+records that the spec is currently a target rather than a description. Moving
+the pin is the last act of implementing, never part of amending. An editorial
+edit that changes no behaviour (a typo, a clarification) is re-pinned in the
+same commit — the pin move is the human's assertion that the code still
+satisfies the file as written.
 
 Verification is a third axis, carried in the registry's `verified` column as
 `<verified>/<total>` requirements. An `adopted` spec with no tests behind it is a
 normal, visible state — not a contradiction. The count is derived from the spec and
 recomputed whenever it changes.
 
-A spec's own version history lives in git and in the plan that produced it. It is
+A spec's own history lives in git and in the plans that produced it. It is
 never written into the spec file: that is the same archaeology ban as everything
-else.
+else. To see exactly what an outstanding amendment changes, diff the pinned
+content against the file: `git cat-file -p <pin> | diff - specs/<spec>.md`.
 
 ## Statements
 
@@ -89,8 +101,8 @@ Three kinds, three ID spaces, one prefix per spec.
 **IDs are never renumbered and never reused.** They are what plans, tests,
 commits, ADRs, and anomalies point at. A requirement that splits keeps its id for
 the surviving half and the new half takes the next free number. A requirement
-that dies keeps its id and its heading, marked `withdrawn in vN`, so nothing
-dangling ever resolves to the wrong statement.
+that dies keeps its id and its heading, marked `withdrawn` with the plan that
+removed it, so nothing dangling ever resolves to the wrong statement.
 
 **Prefer splitting a requirement to rewriting one.** Evidence is attached to a
 statement, so widening a statement silently invalidates its `verified-by` — the
@@ -168,9 +180,10 @@ anomaly converts into a requirement, the spec layer is absorbing code review.
 
 ## Amendment
 
-Every change is a migration from `spec@vN` to `spec@vN+1`, including the first
-one, which migrates from nothing. Amend the spec, derive the plan from the spec
-*delta*, implement against the plan, then move the pin.
+Every change is a migration from the content the code is pinned to, to the
+file as amended — including the first one, which migrates from nothing
+(`pinned: none`). Amend the spec, derive the plan from the spec *delta*,
+implement against the plan, then move the pin.
 
 Adoption is the special case that describes reality and changes nothing.
 **Adoption never smuggles in a fix**: the pin asserts the code satisfies the spec

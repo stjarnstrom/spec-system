@@ -2,7 +2,7 @@
 name: spec-adopt
 description: >
   Write the first spec for a capability by describing what the code does
-  today: statements pinned at v1, evidence mapped from existing tests,
+  today: statements pinned as written, evidence mapped from existing tests,
   anomalies recorded, nothing fixed. Use when the user wants to adopt a
   capability, bring existing code under spec, or invokes /spec-adopt on a
   capability named in specs/registry.yaml.
@@ -73,9 +73,11 @@ business, never adoption's.
    fine — its later conversion into spec changes runs well under 1:1, and a
    spec that absorbs its anomaly list is doing code review's job.
 
-6. **Pin.** In the registry: `spec:`, `prefix:`, `version: 1`, `pinned: 1`,
-   status `adopted` — or `partial` with the uncovered remainder stated in the
-   spec's `not-covered`. Run `check`, then `sync` to regenerate the tables.
+6. **Pin.** In the registry: `spec:`, `prefix:`, `pinned: none`, status
+   `adopted` — or `partial` with the uncovered remainder stated in the spec's
+   `not-covered`. Then `node specs/registry.mjs pin <capability>` records the
+   spec file's content hash as what the code satisfies — the adoption's last
+   act. Run `check`, then `sync` to regenerate the tables.
    Update the adopted-capabilities list in the host repo's agent instruction
    file (the section spec-init installed).
 

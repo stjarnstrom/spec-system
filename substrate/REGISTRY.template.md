@@ -8,8 +8,9 @@ working tree; run it before committing anything under `specs/`.
 [FORMAT.md](FORMAT.md) defines the schema, the status vocabulary, and the
 statement kinds.
 
-`version` is what the spec file says; `pinned` is what the code satisfies. A
-`version` ahead of its `pinned` means an amendment is written and unimplemented.
+`pin` is the content hash of the spec file the code satisfies; git holds the
+file's history. A spec file that no longer matches its pin means an amendment
+is written and unimplemented; `target` means the code does not exist yet.
 `verified` counts requirements with real evidence, derived from the spec itself.
 
 ## Capabilities

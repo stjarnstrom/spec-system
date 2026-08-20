@@ -49,9 +49,10 @@ or nothing (default: working tree + staged vs HEAD; if clean, `HEAD~1..HEAD`).
      diff.
 
 5. **Pins and plans.** From the `owns` output:
-   - If a touched capability has `version > pinned`, an amendment is
-     outstanding — check the diff against the plan's tasks and say which
-     statements it satisfies. Remind that the pin move is the last act.
+   - If a touched capability's spec file no longer matches its pin, an
+     amendment is outstanding — check the diff against the plan's tasks and
+     say which statements it satisfies. Remind that the pin move
+     (`registry.mjs pin`) is the last act.
    - If the diff deletes or weakens a test named in a `verified-by:`, flag it —
      evidence is detaching from a statement.
 

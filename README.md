@@ -3,7 +3,10 @@
 A Claude Code plugin for **spec-as-truth development**: the spec is the source
 of truth, the code is the artifact. Changes go spec-first — amend the spec,
 derive a plan from the spec *delta*, implement against the plan, then move the
-pin that records which spec version the code satisfies.
+pin that records which spec content the code satisfies. Specs carry no version
+numbers: git holds their history, and the pin is a content hash of the spec
+file — equal to the file means in sync, different means an amendment awaits
+implementation, `none` means the code doesn't exist yet.
 
 ## Install
 
@@ -21,7 +24,7 @@ A repo that adopts this carries a `specs/` directory:
   `verified-by` (test evidence) and `checked-by` (falsifying shell commands),
   and what a spec must never contain (history, rationale).
 - `specs/registry.yaml` — machine truth: capabilities, owned paths (whole
-  files, `path#symbol`, or `dir/**`), spec `version` vs code `pinned`, status,
+  files, `path#symbol`, or `dir/**`), the content-hash pin, status,
   dependency edges, seams.
 - `specs/REGISTRY.md` — the generated human rendering.
 - `specs/registry.mjs` — the tool (vendored, zero-dependency; js-yaml used if
@@ -29,6 +32,8 @@ A repo that adopts this carries a `specs/` directory:
   - `check` — validates everything and runs every invariant's `checked-by`
   - `sync` — regenerates the REGISTRY.md tables
   - `owns <files>` — maps a diff to owning capabilities, seams, or unowned
+  - `pin <capability>` — records the spec file's content hash as what the
+    code satisfies; the last act of implementing
 
 The layer is ambient, not opt-in: `spec-init` also installs a git pre-commit
 hook (blocks commits that stage `specs/` while `check` fails; warns when
@@ -39,11 +44,11 @@ repo's agent instruction file so any agent session knows the rules.
 
 | skill | verb |
 |---|---|
-| `spec-init` | scaffold `specs/` + hook + agent instructions; propose boundaries from git co-change history; stop for the human. Greenfield repos skip co-change and write first specs as targets (`version: 1, pinned: 0` + plan) |
+| `spec-init` | scaffold `specs/` + hook + agent instructions; propose boundaries from git co-change history; stop for the human. Greenfield repos skip co-change and write first specs as targets (`pinned: none` + plan) |
 | `spec-boundaries` | propose new capabilities, seams, and boundary corrections from co-change evidence and an ownership sweep; never draws the lines itself |
-| `spec-adopt` | describe one existing capability at v1: statements, evidence from existing tests, anomalies recorded, nothing fixed, pin at 1 |
+| `spec-adopt` | describe one existing capability as it is: statements, evidence from existing tests, anomalies recorded, nothing fixed, pinned as written |
 | `spec-review` | review a diff against the pinned specs: CONSISTENT / CONTRADICTS / DRIFT / RESOLVES, by statement ID |
-| `spec-amend` | move a spec vN → vN+1 and derive the migration plan from the delta; hard-stops on open uncertainties |
+| `spec-amend` | edit a pinned spec and derive the migration plan from the delta; hard-stops on open uncertainties |
 | `spec-implement` | build against the plan test-first (a delta statement is a genuine falsifier), done = evidence exists per statement, pin move as the last act |
 
 New here? Start with [docs/ONBOARDING.md](docs/ONBOARDING.md).

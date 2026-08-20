@@ -9,15 +9,33 @@
 //   node specs/registry.mjs owns <file>...   map files (e.g. git diff --name-only)
 //                                   to their owning capability, seam, or unowned
 //
+//   node specs/registry.mjs pin <capability>   set the capability's pin to its
+//                                   spec file's current content hash — the last
+//                                   act of implementing, never part of amending
+//
 // registry.yaml is the machine truth; REGISTRY.md is its human rendering.
+//
+// A pin is the git blob hash of the spec file content the code satisfies.
+// Spec files carry no version number — git holds their history. The pin's
+// three states are the whole model: equal to the file's current hash (in
+// sync), different (an amendment is written and unimplemented — a plan must
+// exist), or `none` (a target spec whose code does not exist yet).
 
 import fs from 'node:fs';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 
-export const TOOL_VERSION = '0.3.0';
+export const TOOL_VERSION = '0.4.0';
+
+// Identical to `git hash-object <file>` — pins survive with or without git.
+function blobHash(abs) {
+  const buf = fs.readFileSync(abs);
+  return crypto.createHash('sha1').update(`blob ${buf.length}\0`).update(buf).digest('hex');
+}
+const shortPin = (p) => (typeof p === 'string' && p !== 'none' ? p.slice(0, 12) : String(p));
 
 // The specs dir is found from the working directory (walk up to the nearest
 // specs/registry.yaml), so one copy of this script serves any repo it is run
@@ -57,7 +75,8 @@ function miniYamlLoad(text) {
     if (v === 'true') return true;
     if (v === 'false') return false;
     if (v === 'null' || v === '~' || v === '') return null;
-    if (/^-?\d+$/.test(v)) return Number(v);
+    // length guard: an all-digit content hash must stay a string
+    if (/^-?\d+$/.test(v) && v.length <= 15) return Number(v);
     const q = v.match(/^(['"])(.*)\1$/);
     return q ? q[2] : v;
   };
@@ -152,6 +171,19 @@ const caps = reg.capabilities ?? {};
 const errors = [];
 const err = (m) => errors.push(m);
 
+// Pin state, computed once per capability with a spec:
+//   'in sync'               — the spec file's hash equals the pin
+//   'amendment outstanding' — the file changed since the pin; a plan must exist
+//   'target'                — pinned: none; the code does not exist yet
+for (const c of Object.values(caps)) {
+  if (!c || !c.spec) continue;
+  const abs = path.join(SPECS, c.spec);
+  if (c.pinned === 'none') c._state = 'target';
+  else if (typeof c.pinned === 'string' && fs.existsSync(abs))
+    c._state = blobHash(abs) === c.pinned ? 'in sync' : 'amendment outstanding';
+  else c._state = null;
+}
+
 // ── path ownership ────────────────────────────────────────────────────────────
 
 function splitOwned(entry) {
@@ -162,11 +194,11 @@ function splitOwned(entry) {
 }
 
 function checkOwnedPath(cap, entry, c) {
-  // While version runs ahead of pinned, owned paths the plan has not built
-  // yet are legal — a target spec (greenfield: pinned 0) or an amendment
-  // adding files owns paths that do not exist until implemented. Noted, not
-  // an error; the version/pin gap is the record that work is outstanding.
-  const planned = c && c.version > c.pinned;
+  // While the pin does not match the spec file, owned paths the plan has not
+  // built yet are legal — a target spec (pinned: none) or an amendment adding
+  // files owns paths that do not exist until implemented. Noted, not an
+  // error; the pin/file mismatch is the record that work is outstanding.
+  const planned = c && c._state && c._state !== 'in sync';
   const missing = (what) => planned
     ? console.log(`  ○ ${cap}: owned ${what} not yet on disk (plan outstanding)`)
     : err(`${cap}: owned ${what} missing`);
@@ -225,8 +257,8 @@ function parseSpec(cap, c) {
   try { fm = yaml.load(m[1]); } catch (e) { err(`${cap}: bad frontmatter: ${e.message}`); return null; }
 
   if (fm.spec !== cap) err(`${cap}: frontmatter says spec: ${fm.spec}`);
-  if (fm.version !== c.version)
-    err(`${cap}: registry says version ${c.version}, spec says ${fm.version}`);
+  if ('version' in fm)
+    err(`${cap}: version: in frontmatter is obsolete — git holds the history and the pin is a content hash; remove the line`);
   if ('status' in fm) err(`${cap}: status belongs in the registry, not the spec frontmatter`);
 
   // Statements. A block runs to the next heading; a requirement is verified
@@ -266,6 +298,32 @@ function parseSpec(cap, c) {
     }
   }
   return { fm, stmt };
+}
+
+// ── pin: record that the code satisfies the spec file as it stands ───────────
+
+if (process.argv[2] === 'pin') {
+  const cap = process.argv[3];
+  const c = caps[cap];
+  if (!c || !c.spec) { console.error(`✗ pin: "${cap ?? '<capability>'}" is not a capability with a spec`); process.exit(2); }
+  const h = blobHash(path.join(SPECS, c.spec));
+  if (c.pinned === h) { console.log(`✓ ${cap}: already pinned at ${shortPin(h)}`); process.exit(0); }
+  const regPath = path.join(SPECS, 'registry.yaml');
+  const lines = fs.readFileSync(regPath, 'utf8').split('\n');
+  const start = lines.findIndex((l) => new RegExp(`^\\s+${cap}: *$`).test(l));
+  if (start === -1) { console.error(`✗ pin: cannot find "${cap}:" in registry.yaml`); process.exit(2); }
+  const indent = lines[start].match(/^ */)[0].length;
+  let done = false;
+  for (let n = start + 1; n < lines.length; n++) {
+    const l = lines[n];
+    if (l.trim() && !/^\s*#/.test(l) && l.match(/^ */)[0].length <= indent) break;
+    const m = l.match(/^(\s+pinned:) .*$/);
+    if (m) { lines[n] = `${m[1]} ${h}`; done = true; break; }
+  }
+  if (!done) { console.error(`✗ pin: no pinned: line under "${cap}" — add one (\`pinned: none\`) first`); process.exit(2); }
+  fs.writeFileSync(regPath, lines.join('\n'));
+  console.log(`✓ ${cap}: pinned at ${shortPin(h)} (was ${shortPin(c.pinned)}) — run check before committing`);
+  process.exit(0);
 }
 
 // ── owns: map changed files to owners ─────────────────────────────────────────
@@ -318,8 +376,8 @@ if (process.argv[2] === 'owns') {
   }
   for (const [cap, fl] of touched) {
     const c = caps[cap];
-    console.log(`\n${cap}: pinned ${c.pinned} — check the change against specs/${c.spec}`
-      + (c.version > c.pinned ? ` (v${c.version} amendment outstanding: ${c.plan})` : ''));
+    console.log(`\n${cap}: pinned ${shortPin(c.pinned)} — check the change against specs/${c.spec}`
+      + (c._state !== 'in sync' ? ` (${c._state}: ${c.plan})` : ''));
     void fl;
   }
   process.exit(exit);
@@ -333,10 +391,15 @@ for (const [cap, c] of Object.entries(caps)) {
 
   if (c.spec) {
     if (!c.prefix) err(`${cap}: spec without a statement prefix`);
-    if (c.pinned == null) err(`${cap}: spec without a pin`);
-    if (c.pinned > c.version) err(`${cap}: pinned ${c.pinned} ahead of version ${c.version}`);
-    if (c.version > c.pinned && !c.plan)
-      err(`${cap}: version ${c.version} > pinned ${c.pinned} but no plan is named`);
+    if ('version' in c)
+      err(`${cap}: version: in the registry is obsolete — git holds the history; remove the line`);
+    if (c.pinned == null) err(`${cap}: spec without a pin (use \`pinned: none\` for a target spec)`);
+    else if (typeof c.pinned === 'number')
+      err(`${cap}: integer pins are obsolete — pin to the spec file's content hash (node specs/registry.mjs pin ${cap})`);
+    else if (c.pinned !== 'none' && !/^[0-9a-f]{40}$/.test(c.pinned))
+      err(`${cap}: pinned is neither \`none\` nor a 40-hex content hash`);
+    if (c._state && c._state !== 'in sync' && !c.plan)
+      err(`${cap}: spec file does not match the pin (${c._state}) but no plan is named`);
     if (c.plan && !fs.existsSync(path.join(ROOT, c.plan)))
       err(`${cap}: plan file missing: ${c.plan}`);
 
@@ -373,7 +436,7 @@ for (const [cap, c] of Object.entries(caps)) {
     }
   } else {
     if (c.version != null || c.pinned != null)
-      err(`${cap}: version/pin without a spec`);
+      err(`${cap}: pin without a spec`);
   }
 }
 checkOwnershipDisjoint();
@@ -407,24 +470,26 @@ if (errors.length) {
 }
 
 const counts = Object.entries(derived)
-  .map(([cap, d]) => `${cap}: ${d.verified}/${d.total} verified, ${d.inv} invariants (${d.checked} checked, all hold), ${d.unc} uncertainties`)
+  .map(([cap, d]) => `${cap}: ${d.verified}/${d.total} verified, ${d.inv} invariants (${d.checked} checked, all hold), ${d.unc} uncertainties`
+    + (caps[cap]._state !== 'in sync' ? ` — ${caps[cap]._state} (${caps[cap].plan})` : ''))
   .join('\n');
 console.log(`✓ registry consistent\n${counts}`);
 
 if (process.argv[2] === 'sync') {
   const cell = (c) =>
     c.spec
-      ? [`[${c.spec}](${c.spec})`, c.version, c.pinned, `\`${c.status}\``,
-         `${derived[cellCap].verified}/${derived[cellCap].total}`]
-      : ['—', '—', '—', `\`${c.status}\``, '—'];
+      ? [`[${c.spec}](${c.spec})`,
+         c._state === 'in sync' ? `\`${shortPin(c.pinned)}\`` : `**${c._state}** → ${c.plan}`,
+         `\`${c.status}\``, `${derived[cellCap].verified}/${derived[cellCap].total}`]
+      : ['—', '—', `\`${c.status}\``, '—'];
   let cellCap;
   const rows = Object.entries(caps).map(([cap, c]) => {
     cellCap = cap;
     return `| \`${cap}\` | ${cell(c).join(' | ')} | ${(c.paths ?? []).map((p) => `\`${p}\``).join(', ')} |`;
   });
   const capTable = [
-    '| capability | spec | version | pinned | status | verified | owned paths |',
-    '|---|---|---|---|---|---|---|', ...rows,
+    '| capability | spec | pin | status | verified | owned paths |',
+    '|---|---|---|---|---|---|', ...rows,
   ].join('\n');
 
   const edgeTable = [

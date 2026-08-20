@@ -1,8 +1,8 @@
 # Onboarding
 
 You're joining an experiment: **the spec is the source of truth, the code is
-the artifact.** Specs live in `specs/`, are versioned, and are pinned to the
-code — the registry records which spec version the code actually satisfies.
+the artifact.** Specs live in `specs/` and are pinned to the code — the
+registry records which spec content the code actually satisfies.
 Every change goes spec-first. The point is not documentation; the point is
 that agents (and humans) get a machine-checkable contract to build against,
 and drift becomes visible instead of silent.
@@ -25,16 +25,17 @@ In Claude Code:
    a layer); the registry (`specs/registry.yaml`) names each one and the
    paths it owns.
 2. A **spec** states what one capability does, present tense, at
-   implementation detail — no history, no rationale (git and ADRs hold
-   those). Statements have permanent IDs: requirements (`SIMI-001`),
-   invariants (`SIMI-I-001`, guarded by shell tripwires), uncertainties
-   (`SIMI-U-001`, questions the code doesn't answer).
-3. The registry carries two versions per capability: `version` (what the spec
-   says) and `pinned` (what the code satisfies). Equal = no outstanding work;
-   `version` ahead = an amendment awaits implementation. **The gap is the
-   backlog.**
-4. Every change is a migration `spec@vN → vN+1`: amend → plan derived from
-   the delta → implement test-first → move the pin last.
+   implementation detail — no history, no rationale, no version numbers (git
+   and ADRs hold those). Statements have permanent IDs: requirements
+   (`SIMI-001`), invariants (`SIMI-I-001`, guarded by shell tripwires),
+   uncertainties (`SIMI-U-001`, questions the code doesn't answer).
+3. The registry pins each capability to content: `pinned` is the hash of the
+   spec file the code satisfies. Hash matches the file = no outstanding
+   work; file changed since the pin = an amendment awaits implementation;
+   `none` = the code doesn't exist yet. **The mismatch is the backlog.**
+4. Every change is a migration from the pinned content to the amended file:
+   amend → plan derived from the delta → implement test-first → move the pin
+   last (`node specs/registry.mjs pin <capability>`).
 5. `node specs/registry.mjs check` validates all of it and runs every
    invariant's tripwire; a pre-commit hook runs it for you.
 
@@ -56,7 +57,7 @@ Run `/spec-init` and follow it. It scaffolds, proposes capability boundaries
 from git history, and **stops for you** — naming and drawing boundaries is
 the human's job. Then adopt the smallest confirmed capability that has real
 tests (`/spec-adopt`). Greenfield repo: init skips the history pass and you
-write your first spec as a *target* (`version: 1, pinned: 0`) that
+write your first spec as a *target* (`pinned: none`) that
 `/spec-implement` builds test-first.
 
 ## The rules that will feel wrong at first (they're load-bearing)

@@ -2,9 +2,9 @@
 name: spec-implement
 description: >
   Implement an outstanding spec amendment: build against the plan derived from
-  the vN→vN+1 delta, produce the evidence each statement names, and move the
-  pin as the last act. Use when a capability's version is ahead of its pin, the
-  user wants to implement a spec change or migration plan, or invokes
+  the spec delta, produce the evidence each statement names, and move the
+  pin as the last act. Use when a capability's spec file no longer matches its
+  pin, the user wants to implement a spec change or migration plan, or invokes
   /spec-implement.
 ---
 
@@ -15,9 +15,11 @@ compiles".
 ## Procedure
 
 1. **Gate and target.** `node specs/registry.mjs check` must pass. Find the
-   capability whose `version` is ahead of `pinned` and read its `plan:` file
-   and the delta statements it names. If no capability has a gap, stop — there
-   is nothing to implement; suggest spec-amend.
+   capability whose spec file no longer matches its pin (`check` reports it as
+   `amendment outstanding`, or `target` for a spec whose code does not exist
+   yet) and read its `plan:` file and the delta statements it names. If every
+   capability is in sync, stop — there is nothing to implement; suggest
+   spec-amend.
 
 2. **Work the tasks in the plan's order — test-first by default.** A delta
    statement describes behaviour the code does not have yet, so a test
@@ -51,13 +53,15 @@ compiles".
    capabilities' tests (their owners' evidence must keep proving what it
    proved before).
 
-4. **Move the pin — the last act.** Only when every task has landed, set
-   `pinned: N+1` in `specs/registry.yaml`. Partial delivery leaves the pin
-   where it is: update the plan with what landed and what remains, and say so
-   plainly. The version/pin gap is the record; never close it aspirationally.
+4. **Move the pin — the last act.** Only when every task has landed, run
+   `node specs/registry.mjs pin <capability>` — it records the spec file's
+   content hash as what the code now satisfies. Partial delivery leaves the
+   pin where it is: update the plan with what landed and what remains, and say
+   so plainly. The file/pin mismatch is the record; never close it
+   aspirationally.
 
 5. **Close the loop.** Annotate the anomaly-list entries the amendment
-   consumed (e.g. mark them `[vN+1]` with a header note). Run `sync`. Report
+   consumed (e.g. mark them `[consumed: <plan>]`). Run `sync`. Report
    per task with statement IDs and the new verified count.
 
 ## Rules

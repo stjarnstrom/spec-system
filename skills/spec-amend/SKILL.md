@@ -1,7 +1,7 @@
 ---
 name: spec-amend
 description: >
-  Move a spec from vN to vN+1: convert anomalies or a desired behaviour change
+  Amend a pinned spec: convert anomalies or a desired behaviour change
   into statement changes plus a plan derived from the delta. Use when the user
   wants to change what a pinned capability does, turn anomaly-list findings
   into spec changes, or invokes /spec-amend. Changes no code; the pin stays
@@ -9,15 +9,16 @@ description: >
 ---
 
 Amend a spec. Spec-first means the change lands here before any code moves:
-the amendment produces the new spec version and the plan derived from the
-delta, and stops. Implementation is spec-implement's job.
+the amendment edits the spec file and derives a plan from the delta, then
+stops. Implementation is spec-implement's job.
 
 ## Procedure
 
 1. **Gate.** `node specs/registry.mjs check` must pass. Identify the target
    capability in `specs/registry.yaml`; read its spec and its anomaly list in
-   full. If its `version` is already ahead of `pinned`, extend the existing
-   plan rather than stacking a second unimplemented version.
+   full. If its spec file already differs from its pin (`check` reports
+   `amendment outstanding`), extend the existing plan rather than stacking a
+   second unimplemented amendment.
 
 2. **Scope the delta.** The input is a slice of the anomaly list, or a desired
    behaviour stated by the user. For each item, decide what it becomes —
@@ -38,16 +39,18 @@ delta, and stops. Implementation is spec-implement's job.
      claims. Leave the verified statement under its own id; put added
      behaviour in a new statement with the next free number.
    - Rewrite only when the original statement is no longer true at all.
-   - A withdrawn statement keeps its id and heading, marked `withdrawn in vN`.
+   - A withdrawn statement keeps its id and heading, marked `withdrawn` with
+     the plan that removed it.
    - IDs are never renumbered and never reused. New invariants need
      `checked-by` (a falsifying command, or `UNCHECKED`); new open questions
      get `-U-` ids.
 
-4. **Bump versions.** The spec frontmatter's `version` and the registry's
-   `version` both move to N+1; `pinned` does not move. The gap is the record
-   that work is outstanding, and `check` will demand a `plan:` for it.
+4. **Leave the pin alone.** Editing the spec file is the whole amendment:
+   the file's hash now differs from `pinned`, and that mismatch is the record
+   that work is outstanding — `check` will demand a `plan:` for it. Nothing
+   else to bump.
 
-5. **Derive the plan from the delta** — `docs/changes/<date>-<spec>-v<N+1>.md`,
+5. **Derive the plan from the delta** — `docs/changes/<date>-<spec>-<topic>.md`,
    named in the registry's `plan:` field:
    - A delta table: every touched statement, its change, its source anomaly.
    - Tasks that name the statements they satisfy. A task is done when its
@@ -66,4 +69,4 @@ delta, and stops. Implementation is spec-implement's job.
 - Do not smuggle in spec-side fixes beyond the scoped delta; unrelated
   discoveries go to the anomaly list.
 - If nothing in the input converts to a statement change, say so — a plan of
-  ordinary bug fixes needs no new spec version.
+  ordinary bug fixes needs no spec edit at all.
