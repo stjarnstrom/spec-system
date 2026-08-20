@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 
-export const TOOL_VERSION = '0.2.0';
+export const TOOL_VERSION = '0.3.0';
 
 // The specs dir is found from the working directory (walk up to the nearest
 // specs/registry.yaml), so one copy of this script serves any repo it is run
@@ -161,18 +161,28 @@ function splitOwned(entry) {
     : { file: entry.slice(0, i), symbol: entry.slice(i + 1) };
 }
 
-function checkOwnedPath(cap, entry) {
+function checkOwnedPath(cap, entry, c) {
+  // While version runs ahead of pinned, owned paths the plan has not built
+  // yet are legal — a target spec (greenfield: pinned 0) or an amendment
+  // adding files owns paths that do not exist until implemented. Noted, not
+  // an error; the version/pin gap is the record that work is outstanding.
+  const planned = c && c.version > c.pinned;
+  const missing = (what) => planned
+    ? console.log(`  ○ ${cap}: owned ${what} not yet on disk (plan outstanding)`)
+    : err(`${cap}: owned ${what} missing`);
   const { file, symbol } = splitOwned(entry);
   if (file.endsWith('/**')) {
     const dir = path.join(ROOT, file.slice(0, -3));
     if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory())
-      err(`${cap}: owned directory missing: ${file}`);
+      missing(`directory: ${file}`);
     return;
   }
   const abs = path.join(ROOT, file);
-  if (!fs.existsSync(abs)) return err(`${cap}: owned file missing: ${file}`);
-  if (symbol && !fs.readFileSync(abs, 'utf8').includes(symbol))
-    err(`${cap}: symbol "${symbol}" not found in ${file}`);
+  if (!fs.existsSync(abs)) return missing(`file: ${file}`);
+  if (symbol && !fs.readFileSync(abs, 'utf8').includes(symbol)) {
+    if (planned) console.log(`  ○ ${cap}: owned symbol "${symbol}" not yet in ${file} (plan outstanding)`);
+    else err(`${cap}: symbol "${symbol}" not found in ${file}`);
+  }
 }
 
 // No path may have two owners. Whole-file ownership conflicts with any other
@@ -319,7 +329,7 @@ if (process.argv[2] === 'owns') {
 
 const derived = {}; // cap -> {verified, total, inv, unc}
 for (const [cap, c] of Object.entries(caps)) {
-  for (const p of c.paths ?? []) checkOwnedPath(cap, p);
+  for (const p of c.paths ?? []) checkOwnedPath(cap, p, c);
 
   if (c.spec) {
     if (!c.prefix) err(`${cap}: spec without a statement prefix`);

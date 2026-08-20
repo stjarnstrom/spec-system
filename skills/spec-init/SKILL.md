@@ -38,30 +38,43 @@ adopts nothing — adoption is its own act, per FORMAT.md.
      CLAUDE.md — whichever the repo treats as canonical), filling in the
      adopted-capabilities list (right after init: "none yet").
 
-4. **Propose boundaries from the history.** Run
+4. **Greenfield fork.** A repo with no (or only scaffold) history has nothing
+   for co-change to read and nothing for spec-adopt to describe — skip steps
+   5 and 6 and invert the flow: capabilities come from the user's intent, and
+   each first spec is written as a **target**, not a description. Its
+   registry entry carries `version: 1, pinned: 0` with a `plan:` — the
+   version/pin gap is the record that the code does not exist yet, `check`
+   notes (rather than rejects) owned paths not yet on disk while the gap is
+   open, and spec-implement builds test-first against the plan, moving the
+   pin to 1 when the behaviour is real and evidenced. Keep the entry's
+   status `unspecified` until that first pin move lands `adopted`.
+
+5. **Propose boundaries from the history.** Run
    `python3 ${CLAUDE_PLUGIN_ROOT}/substrate/cochange.py . --threshold 0.35`
    (raise the threshold by 0.05 if one cluster swallows everything; lower it if
    all singletons). Read the repo's own conventions (CLAUDE.md / AGENTS.md /
    architecture docs) before naming anything.
 
-5. **Fill `specs/registry.yaml`** with the proposed capabilities, every one
+6. **Fill `specs/registry.yaml`** with the proposed capabilities, every one
    `status: unspecified` — they are hypotheses, and the registry says so.
    Apply the boundary rules from FORMAT.md: a capability is observable
    behaviour at a contract; spec names are not package names; hub files are
    seams or cross-cutting, not capabilities. Claim shared files
    symbol-by-symbol (`path#symbol`), never whole.
 
-6. **Verify and render.** `node specs/registry.mjs check` must pass;
+7. **Verify and render.** `node specs/registry.mjs check` must pass;
    then `node specs/registry.mjs sync` to generate the REGISTRY.md tables.
 
-7. **Stop for the human.** Present the proposed boundaries with the co-change
+8. **Stop for the human.** Present the proposed boundaries with the co-change
    evidence and ask which to confirm — naming and drawing boundaries is the
    user's decision. Do not adopt any capability in the same pass; suggest
    starting with the smallest confirmed one.
 
 ## Rules
 
-- Scaffold only: no spec files, no pins, no behaviour changes.
+- Scaffold only: no spec files, no pins, no behaviour changes. (The
+  greenfield fork's target specs are the one exception — pinned 0, they
+  assert nothing about code.)
 - Never overwrite an existing specs/ — this skill initialises, it does not
   upgrade. (Upgrading a vendored registry.mjs is a manual copy, compared by
   TOOL_VERSION.)
