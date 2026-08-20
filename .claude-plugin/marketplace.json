@@ -1,0 +1,14 @@
+{
+  "name": "stjarnstrom",
+  "description": "Plugins by Robert Stjärnstrom — currently the spec-as-truth development system.",
+  "owner": {
+    "name": "Robert Stjärnstrom"
+  },
+  "plugins": [
+    {
+      "name": "spec-system",
+      "source": "./",
+      "description": "Spec-as-truth development: specs are the source of truth, code is the artifact. Scaffold the substrate, review diffs against pinned specs, amend specs, implement against delta-derived plans."
+    }
+  ]
+}
