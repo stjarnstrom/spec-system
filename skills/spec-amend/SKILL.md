@@ -51,7 +51,9 @@ delta, and stops. Implementation is spec-implement's job.
    named in the registry's `plan:` field:
    - A delta table: every touched statement, its change, its source anomaly.
    - Tasks that name the statements they satisfy. A task is done when its
-     statements have real evidence, not when the code compiles.
+     statements have real evidence, not when the code compiles. Mark tasks
+     that are independent of each other — spec-implement may parallelise
+     those; unmarked tasks run in order.
    - Plan-only tasks (step 2) with their stated no-requirement reason.
    - An explicit out-of-scope section for the anomalies not consumed.
 
