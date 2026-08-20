@@ -20,27 +20,41 @@ adopts nothing — adoption is its own act, per FORMAT.md.
    - `${CLAUDE_PLUGIN_ROOT}/substrate/FORMAT.md` → `specs/FORMAT.md`
    - `${CLAUDE_PLUGIN_ROOT}/substrate/registry.template.yaml` → `specs/registry.yaml`
    - `${CLAUDE_PLUGIN_ROOT}/substrate/REGISTRY.template.md` → `specs/REGISTRY.md`
-   These are vendored copies on purpose: the repo's CI must be able to run
-   `node specs/registry.mjs check` with no plugin installed. js-yaml is used
-   when the repo has it; a bundled fallback parser covers the rest.
+   - `${CLAUDE_PLUGIN_ROOT}/substrate/hooks/pre-commit` → `specs/hooks/pre-commit`
+     (keep it executable)
+   These are vendored copies on purpose: the repo must be able to run
+   `node specs/registry.mjs check` locally with no plugin installed. js-yaml
+   is used when the repo has it; a bundled fallback parser covers the rest.
 
-3. **Propose boundaries from the history.** Run
+3. **Wire the repo so the layer is ambient, not opt-in.**
+   - Install the hook: `ln -sf ../../specs/hooks/pre-commit .git/hooks/pre-commit`.
+     If `.git/hooks/pre-commit` already exists (husky, lefthook, git-lfs…),
+     do NOT overwrite it — instead add a line to the existing hook (or the
+     repo's hook manager config) that runs `specs/hooks/pre-commit`. The hook
+     blocks commits staging `specs/` when `check` fails, and warns (never
+     blocks) when staged code is spec-owned with no spec delta.
+   - Append the spec section to the repo's agent instruction file: adapt
+     `${CLAUDE_PLUGIN_ROOT}/substrate/AGENTS.section.md` into AGENTS.md (or
+     CLAUDE.md — whichever the repo treats as canonical), filling in the
+     adopted-capabilities list (right after init: "none yet").
+
+4. **Propose boundaries from the history.** Run
    `python3 ${CLAUDE_PLUGIN_ROOT}/substrate/cochange.py . --threshold 0.35`
    (raise the threshold by 0.05 if one cluster swallows everything; lower it if
    all singletons). Read the repo's own conventions (CLAUDE.md / AGENTS.md /
    architecture docs) before naming anything.
 
-4. **Fill `specs/registry.yaml`** with the proposed capabilities, every one
+5. **Fill `specs/registry.yaml`** with the proposed capabilities, every one
    `status: unspecified` — they are hypotheses, and the registry says so.
    Apply the boundary rules from FORMAT.md: a capability is observable
    behaviour at a contract; spec names are not package names; hub files are
    seams or cross-cutting, not capabilities. Claim shared files
    symbol-by-symbol (`path#symbol`), never whole.
 
-5. **Verify and render.** `node specs/registry.mjs check` must pass;
+6. **Verify and render.** `node specs/registry.mjs check` must pass;
    then `node specs/registry.mjs sync` to generate the REGISTRY.md tables.
 
-6. **Stop for the human.** Present the proposed boundaries with the co-change
+7. **Stop for the human.** Present the proposed boundaries with the co-change
    evidence and ask which to confirm — naming and drawing boundaries is the
    user's decision. Do not adopt any capability in the same pass; suggest
    starting with the smallest confirmed one.

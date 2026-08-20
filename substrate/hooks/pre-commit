@@ -1,0 +1,43 @@
+#!/bin/sh
+# spec-system pre-commit — the local verify gate (specs/ is the source of truth).
+#
+#   1. Anything staged under specs/  →  `registry.mjs check` must pass (BLOCKS).
+#   2. Staged code owned by an adopted capability, with no specs/ delta staged
+#      →  print who owns it and which spec to check (WARNS, never blocks).
+#
+# Install (once, per clone):
+#   ln -sf ../../specs/hooks/pre-commit .git/hooks/pre-commit
+#
+# Bypass a blocking failure deliberately with `git commit --no-verify`.
+
+set -u
+root=$(git rev-parse --show-toplevel) || exit 0
+staged=$(git diff --cached --name-only --diff-filter=ACMRD)
+[ -z "$staged" ] && exit 0
+[ -f "$root/specs/registry.mjs" ] || exit 0
+
+if printf '%s\n' "$staged" | grep -q '^specs/'; then
+  # Spec delta staged: the registry must be consistent. Owned-code warnings
+  # are moot — a spec change alongside code is exactly the amend loop working.
+  if ! node "$root/specs/registry.mjs" check; then
+    echo >&2 ""
+    echo >&2 "pre-commit: specs/ is staged but 'registry.mjs check' fails (above)."
+    echo >&2 "Fix the registry, or bypass deliberately with --no-verify."
+    exit 1
+  fi
+  exit 0
+fi
+
+# No spec delta: warn if the staged code is spec-owned (the change may need an
+# amendment — or may be an internal refactor; that judgement is the human's).
+owned=$(printf '%s\n' "$staged" \
+  | xargs node "$root/specs/registry.mjs" owns 2>/dev/null \
+  | grep '  →  ' | grep -v '  →  unowned$' | grep -v '  →  seam (')
+if [ -n "$owned" ]; then
+  echo >&2 ""
+  echo >&2 "spec-system: staged changes touch spec-owned code, with no specs/ delta:"
+  printf '%s\n' "$owned" >&2
+  echo >&2 "If observable behaviour changed, amend the spec first (spec-amend)."
+  echo >&2 "Warning only — the commit proceeds."
+fi
+exit 0

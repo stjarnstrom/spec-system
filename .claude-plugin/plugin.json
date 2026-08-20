@@ -1,7 +1,7 @@
 {
   "name": "spec-system",
   "description": "Spec-as-truth development: specs in specs/ are the source of truth, code is the artifact. spec-init scaffolds the substrate into any repo; spec-review checks diffs against pinned specs; spec-amend moves a spec vN→vN+1 and derives the plan; spec-implement builds against the plan and moves the pin last. spec-adopt to follow.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "author": {
     "name": "Robert Stjärnstrom"
   }
