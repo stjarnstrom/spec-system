@@ -30,18 +30,23 @@ A repo that adopts this carries a `specs/` directory:
   - `sync` — regenerates the REGISTRY.md tables
   - `owns <files>` — maps a diff to owning capabilities, seams, or unowned
 
+The layer is ambient, not opt-in: `spec-init` also installs a git pre-commit
+hook (blocks commits that stage `specs/` while `check` fails; warns when
+staged code is spec-owned with no spec delta) and a section in the host
+repo's agent instruction file so any agent session knows the rules.
+
 ## Skills
 
 | skill | verb |
 |---|---|
-| `spec-init` | scaffold `specs/` into a fresh repo, propose boundaries from git co-change history, stop for the human |
+| `spec-init` | scaffold `specs/` + hook + agent instructions; propose boundaries from git co-change history; stop for the human. Greenfield repos skip co-change and write first specs as targets (`version: 1, pinned: 0` + plan) |
+| `spec-boundaries` | propose new capabilities, seams, and boundary corrections from co-change evidence and an ownership sweep; never draws the lines itself |
+| `spec-adopt` | describe one existing capability at v1: statements, evidence from existing tests, anomalies recorded, nothing fixed, pin at 1 |
 | `spec-review` | review a diff against the pinned specs: CONSISTENT / CONTRADICTS / DRIFT / RESOLVES, by statement ID |
 | `spec-amend` | move a spec vN → vN+1 and derive the migration plan from the delta; hard-stops on open uncertainties |
-| `spec-implement` | build against the plan, done = evidence exists per statement, pin move as the last act |
+| `spec-implement` | build against the plan test-first (a delta statement is a genuine falsifier), done = evidence exists per statement, pin move as the last act |
 
-Still to come: `spec-adopt` (describe existing code at v1 — it has a 50-finding
-anomaly benchmark waiting in the origin repo) and `spec-boundaries` (a thin
-wrapper over `substrate/cochange.py`).
+New here? Start with [docs/ONBOARDING.md](docs/ONBOARDING.md).
 
 ## Where the rules come from
 
