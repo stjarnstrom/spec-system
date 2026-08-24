@@ -5,6 +5,9 @@ The human rendering of the spec layer's index and pin table. The machine truth i
 `node specs/registry.mjs sync` — **edit the yaml, never the tables**.
 `node specs/registry.mjs check` validates the yaml against the spec files and the
 working tree; run it before committing anything under `specs/`.
+`node specs/registry.mjs render` writes [registry.html](registry.html), a
+browsable rendering of the registry, the specs, and the plans — a view for
+humans, never edited by hand.
 [FORMAT.md](FORMAT.md) defines the schema, the status vocabulary, and the
 statement kinds.
 

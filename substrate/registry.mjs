@@ -13,6 +13,10 @@
 //                                   spec file's current content hash — the last
 //                                   act of implementing, never part of amending
 //
+//   node specs/registry.mjs render  run check, then write specs/registry.html —
+//                                   a self-contained browsable rendering of the
+//                                   registry, every spec, and every plan
+//
 // registry.yaml is the machine truth; REGISTRY.md is its human rendering.
 //
 // A pin is the git blob hash of the spec file content the code satisfies.
@@ -28,7 +32,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 
-export const TOOL_VERSION = '0.4.0';
+export const TOOL_VERSION = '0.5.0';
 
 // Identical to `git hash-object <file>` — pins survive with or without git.
 function blobHash(abs) {
@@ -405,6 +409,7 @@ for (const [cap, c] of Object.entries(caps)) {
 
     const parsed = parseSpec(cap, c);
     if (parsed) {
+      c._parsed = parsed;
       const { fm, stmt } = parsed;
       let checked = 0;
       for (const inv of stmt.inv) {
@@ -514,4 +519,268 @@ if (process.argv[2] === 'sync') {
   put('seams', seamTable);
   fs.writeFileSync(mdPath, md);
   console.log('✓ REGISTRY.md tables regenerated');
+}
+
+// ── render: self-contained HTML rendering of registry, specs, and plans ──────
+// A view for humans, generated from the same truth as everything else. Output
+// is deterministic (no timestamps) so regeneration is diff-quiet.
+
+if (process.argv[2] === 'render') {
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // Every statement id that exists anywhere, so mentions auto-link to their
+  // statement — including from plans, which cite ids constantly.
+  const knownIds = new Set();
+  for (const c of Object.values(caps))
+    for (const kind of ['req', 'inv', 'unc'])
+      for (const s of c._parsed?.stmt[kind] ?? []) knownIds.add(s.id);
+
+  const linkIds = (html) => html.replace(
+    /(^|[^#\w-])([A-Z][A-Z0-9]*-(?:[IU]-)?\d{3})\b/g,
+    (m, pre, id) => (knownIds.has(id) ? `${pre}<a href="#${id}">${id}</a>` : m));
+
+  const inline = (s) => {
+    let h = esc(s);
+    h = h.replace(/`([^`]+)`/g, (_, c) => `<code>${c}</code>`);
+    h = h.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, t, u) => `<a href="${u}">${t}</a>`);
+    h = h.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    h = h.replace(/(^|[^*\w])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>');
+    return linkIds(h);
+  };
+
+  // Markdown subset renderer for the shapes specs and plans actually use:
+  // headings, paragraphs, lists (one nesting level), pipe tables, fenced code,
+  // and the evidence lines (verified-by / checked-by), which get their own
+  // styling. Statement headings (### ID — title) become anchors.
+  function mdToHtml(md) {
+    const lines = md.split('\n');
+    const out = [];
+    for (let i = 0; i < lines.length; i++) {
+      const l = lines[i];
+      if (/^```/.test(l)) {
+        const code = [];
+        for (i++; i < lines.length && !/^```/.test(lines[i]); i++) code.push(lines[i]);
+        out.push(`<pre><code>${esc(code.join('\n'))}</code></pre>`);
+        continue;
+      }
+      const h = l.match(/^(#{1,4}) (.*)$/);
+      if (h) {
+        const n = h[1].length + 1; // demote: the page owns h1/h2
+        const idm = h[2].match(/^([A-Z][A-Z0-9]*-(?:[IU]-)?\d{3})\b/);
+        const attr = idm ? ` id="${idm[1]}" class="stmt"` : '';
+        out.push(`<h${n}${attr}>${inline(h[2])}</h${n}>`);
+        continue;
+      }
+      if (/^\|/.test(l)) {
+        const rows = [];
+        for (; i < lines.length && /^\|/.test(lines[i]); i++) rows.push(lines[i]);
+        i--;
+        const cells = (r) => r.replace(/^\||\|$/g, '').split('|').map((c) => c.trim());
+        const body = rows.filter((r) => !/^\|[\s|:-]+\|$/.test(r));
+        const tr = (r, tag) => `<tr>${cells(r).map((c) => `<${tag}>${inline(c)}</${tag}>`).join('')}</tr>`;
+        out.push(`<table><thead>${tr(body[0], 'th')}</thead><tbody>${body.slice(1).map((r) => tr(r, 'td')).join('')}</tbody></table>`);
+        continue;
+      }
+      const ev = l.match(/^(verified-by|checked-by):\s*(.*)$/);
+      if (ev) {
+        const vals = [ev[2]];
+        while (i + 1 < lines.length && /^\s{2,}\S/.test(lines[i + 1]) && !/^\s*- /.test(lines[i + 1])) vals.push(lines[++i].trim());
+        out.push(`<div class="evidence"><span>${ev[1]}</span> ${inline(vals.join(', '))}</div>`);
+        continue;
+      }
+      const li = l.match(/^(\s*)(?:[-*]|\d+\.) (.*)$/);
+      if (li) {
+        const tag = /^\s*\d+\./.test(l) ? 'ol' : 'ul';
+        out.push(`<${tag}>`);
+        let depth = 0;
+        for (; i < lines.length; i++) {
+          const m = lines[i].match(/^(\s*)(?:[-*]|\d+\.) (.*)$/);
+          if (!m) {
+            // continuation line of the previous item
+            if (/^\s{2,}\S/.test(lines[i])) { out.push(` ${inline(lines[i].trim())}`); continue; }
+            break;
+          }
+          const nested = m[1].length >= 2;
+          if (nested && !depth) { out.push('<ul>'); depth = 1; }
+          if (!nested && depth) { out.push('</li></ul>'); depth = 0; }
+          else if (out[out.length - 1] !== `<${tag}>` && out[out.length - 1] !== '<ul>') out.push('</li>');
+          out.push(`<li>${inline(m[2])}`);
+        }
+        i--;
+        out.push(`</li>${depth ? '</ul></li>' : ''}</${tag}>`);
+        continue;
+      }
+      if (l.trim()) {
+        const para = [l];
+        while (i + 1 < lines.length && lines[i + 1].trim()
+          && !/^(#{1,4} |```|\||\s*(?:[-*]|\d+\.) |(?:verified-by|checked-by):)/.test(lines[i + 1]))
+          para.push(lines[++i]);
+        out.push(`<p>${inline(para.join(' '))}</p>`);
+      }
+    }
+    return out.join('\n');
+  }
+
+  const badge = (state) => ({
+    'in sync': '<span class="badge b-sync">in sync</span>',
+    'amendment outstanding': '<span class="badge b-out">amendment outstanding</span>',
+    'target': '<span class="badge b-target">target</span>',
+  }[state] ?? '');
+
+  const planAnchor = (p) => `plan-${path.basename(p, '.md')}`;
+  const planLink = (p) => `<a href="#${planAnchor(p)}">${esc(path.basename(p, '.md'))}</a>`;
+
+  // ── overview tables ──
+  const capRows = Object.entries(caps).map(([cap, c]) => {
+    const d = derived[cap];
+    return `<tr><td><code>${esc(cap)}</code></td>`
+      + `<td>${c.spec ? `<a href="#spec-${esc(cap)}">${esc(c.spec)}</a>` : '—'}</td>`
+      + `<td>${c.spec ? (c._state === 'in sync' ? `${badge(c._state)} <code class="pin">${esc(shortPin(c.pinned))}</code>` : `${badge(c._state)} → ${planLink(c.plan ?? '')}`) : '—'}</td>`
+      + `<td><code>${esc(c.status)}</code></td>`
+      + `<td>${d ? `${d.verified}/${d.total}` : '—'}</td>`
+      + `<td class="paths">${(c.paths ?? []).map((p) => `<code>${esc(p)}</code>`).join('<br>')}</td></tr>`;
+  }).join('\n');
+
+  const edgeRows = (reg.edges ?? []).map((e) =>
+    `<tr><td><code>${esc(e.from)}</code></td><td><code>${esc(e.to)}</code></td><td>${esc(e.source)}</td><td>${inline(e.reason ?? '')}</td></tr>`).join('\n');
+  const seamRows = (reg.seams ?? []).map((s) =>
+    `<tr><td><code>${esc(s.path)}</code></td><td>${inline(s.what ?? '')}</td></tr>`).join('\n');
+
+  // ── spec sections ──
+  const specSections = Object.entries(caps).filter(([, c]) => c.spec && c._parsed).map(([cap, c]) => {
+    const { fm } = c._parsed;
+    const d = derived[cap];
+    const text = fs.readFileSync(path.join(SPECS, c.spec), 'utf8');
+    const body = text.replace(/^---\n[\s\S]*?\n---\n/, '');
+    const dep = (x) => (x in caps && caps[x].spec ? `<a href="#spec-${esc(x)}"><code>${esc(x)}</code></a>` : `<code>${esc(x)}</code>`);
+    const excludes = (fm.excludes ?? []).map((ex) => {
+      const [t, what] = typeof ex === 'string' ? [ex.split(':')[0], ex.split(':').slice(1).join(':')] : Object.entries(ex)[0];
+      return `${dep(t)}${what ? ` — ${inline(String(what).trim())}` : ''}`;
+    });
+    const fmRow = (k, v) => (v ? `<div class="fm-row"><span>${k}</span><div>${v}</div></div>` : '');
+    return `<section id="spec-${esc(cap)}">
+<h2><code>${esc(cap)}</code> ${badge(c._state)}</h2>
+<div class="meta">${esc(c.spec)} · status <code>${esc(c.status)}</code> · pin <code class="pin">${esc(shortPin(c.pinned))}</code>`
+      + (c._state !== 'in sync' && c.plan ? ` · plan ${planLink(c.plan)}` : '')
+      + (d ? ` · ${d.verified}/${d.total} verified · ${d.inv} invariants · ${d.unc} uncertainties` : '') + `</div>
+<div class="fm">
+${fmRow('covers', fm.covers ? inline(fm.covers.trim()) : '')}
+${fmRow('not covered', fm['not-covered'] ? inline(fm['not-covered'].trim()) : '')}
+${fmRow('depends on', (fm['depends-on'] ?? []).map(dep).join(', '))}
+${fmRow('excludes', excludes.join('<br>'))}
+${fmRow('paths', (fm.paths ?? []).map((p) => `<code>${esc(p)}</code>`).join('<br>'))}
+</div>
+${mdToHtml(body)}
+</section>`;
+  }).join('\n');
+
+  // ── plan sections: everything in docs/changes/, active ones badged ──
+  const activePlans = new Map(Object.entries(caps).filter(([, c]) => c.plan && c._state !== 'in sync').map(([cap, c]) => [path.resolve(ROOT, c.plan), cap]));
+  const plansDir = path.join(ROOT, 'docs', 'changes');
+  const planFiles = fs.existsSync(plansDir)
+    ? fs.readdirSync(plansDir).filter((f) => f.endsWith('.md')).sort().reverse().map((f) => path.join(plansDir, f))
+    : [];
+  const planSections = planFiles.map((abs) => {
+    const cap = activePlans.get(path.resolve(abs));
+    return `<section id="${planAnchor(abs)}">
+<h2>${esc(path.basename(abs, '.md'))} ${cap ? `<span class="badge b-out">active — ${esc(cap)}</span>` : '<span class="badge b-done">implemented</span>'}</h2>
+<div class="meta">${esc(path.relative(ROOT, abs))}</div>
+${mdToHtml(fs.readFileSync(abs, 'utf8'))}
+</section>`;
+  }).join('\n');
+
+  const nav = [
+    '<a href="#overview">overview</a>',
+    ...Object.keys(caps).filter((cap) => caps[cap].spec).map((cap) => `<a href="#spec-${esc(cap)}">${esc(cap)}</a>`),
+    ...planFiles.map((p) => `<a href="#${planAnchor(p)}">${esc(path.basename(p, '.md'))}</a>`),
+  ].join('\n');
+
+  const html = `<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(path.basename(ROOT))} — spec registry</title>
+<style>
+:root {
+  --bg: #ffffff; --fg: #1a1f24; --muted: #6a737d; --hairline: #e4e7eb;
+  --code-bg: #f2f4f6; --link: #0757ba;
+  --sync: #12703c; --sync-bg: #e9f5ee; --out: #8a5a00; --out-bg: #fdf3df;
+  --target: #4a5568; --target-bg: #eef0f3;
+}
+@media (prefers-color-scheme: dark) { :root {
+  --bg: #14181c; --fg: #d8dee5; --muted: #8b949e; --hairline: #2b3138;
+  --code-bg: #1f252b; --link: #6cb0f5;
+  --sync: #5ecb8b; --sync-bg: #16281e; --out: #e3b34c; --out-bg: #2b2314;
+  --target: #a5aeb8; --target-bg: #22272d;
+} }
+* { box-sizing: border-box; }
+body { margin: 0 auto; max-width: 54rem; padding: 2rem 1.5rem 6rem;
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--bg); color: var(--fg); }
+h1 { font-size: 1.5rem; margin: 0 0 .25rem; }
+h2 { font-size: 1.2rem; margin: 0 0 .5rem; }
+h3 { font-size: 1rem; margin: 1.5rem 0 .35rem; }
+h4, h5 { font-size: .95rem; margin: 1.2rem 0 .3rem; }
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code { font: .85em/1.4 ui-monospace, "SF Mono", Menlo, monospace;
+  background: var(--code-bg); padding: .1em .35em; border-radius: 4px; }
+pre { background: var(--code-bg); padding: .75rem 1rem; border-radius: 8px; overflow-x: auto; }
+pre code { background: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: .75rem 0 1.25rem; font-size: .92rem; }
+th, td { text-align: left; padding: .4rem .6rem; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }
+nav { display: flex; flex-wrap: wrap; gap: .25rem .9rem; margin: 1rem 0 2rem;
+  padding-bottom: 1rem; border-bottom: 1px solid var(--hairline); font-size: .9rem; }
+section { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--hairline); }
+section#overview { margin-top: 0; padding-top: 0; border-top: none; }
+.subtitle, .meta { color: var(--muted); font-size: .88rem; }
+.meta { margin-bottom: 1rem; }
+.badge { font-size: .72rem; font-weight: 600; padding: .15em .55em; border-radius: 99px;
+  vertical-align: 2px; white-space: nowrap; }
+.b-sync { color: var(--sync); background: var(--sync-bg); }
+.b-out { color: var(--out); background: var(--out-bg); }
+.b-target, .b-done { color: var(--target); background: var(--target-bg); }
+.pin { color: var(--muted); }
+.paths code { display: inline-block; margin: .1rem 0; }
+.fm { margin: 0 0 1.5rem; font-size: .92rem; }
+.fm-row { display: flex; gap: .75rem; padding: .3rem 0; border-bottom: 1px solid var(--hairline); }
+.fm-row > span { flex: 0 0 7.5rem; color: var(--muted); }
+.evidence { font-size: .85rem; color: var(--muted); margin: .2rem 0 .8rem; }
+.evidence > span { font-weight: 600; }
+h3.stmt { padding-top: .5rem; }
+:target { scroll-margin-top: 1rem; }
+:target > code:first-child, h3:target { outline: none; }
+h3:target, h2:target { text-decoration: underline; text-underline-offset: 4px; }
+</style>
+<body>
+<h1>${esc(path.basename(ROOT))} — spec registry</h1>
+<p class="subtitle">Generated by <code>node specs/registry.mjs render</code> from
+<a href="registry.yaml">registry.yaml</a> and the spec files — a view, never the truth. Do not edit.</p>
+<nav>
+${nav}
+</nav>
+<section id="overview">
+<h2>Capabilities</h2>
+<table><thead><tr><th>capability</th><th>spec</th><th>pin</th><th>status</th><th>verified</th><th>owned paths</th></tr></thead>
+<tbody>
+${capRows}
+</tbody></table>
+${edgeRows ? `<h2>Dependency edges</h2>
+<table><thead><tr><th>capability</th><th>depends-on</th><th>via</th><th>reason</th></tr></thead><tbody>
+${edgeRows}
+</tbody></table>` : ''}
+${seamRows ? `<h2>Seams</h2>
+<table><thead><tr><th>path</th><th>seam</th></tr></thead><tbody>
+${seamRows}
+</tbody></table>` : ''}
+</section>
+${specSections}
+${planSections}
+</body>
+</html>
+`;
+  const outPath = path.join(SPECS, 'registry.html');
+  fs.writeFileSync(outPath, html);
+  console.log(`✓ ${path.relative(process.cwd(), outPath)} written (${Object.keys(caps).filter((k) => caps[k].spec).length} specs, ${planFiles.length} plans)`);
 }
