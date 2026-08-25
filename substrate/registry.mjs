@@ -604,7 +604,15 @@ if (process.argv[2] === 'render') {
           if (nested && !depth) { out.push('<ul>'); depth = 1; }
           if (!nested && depth) { out.push('</li></ul>'); depth = 0; }
           else if (out[out.length - 1] !== `<${tag}>` && out[out.length - 1] !== '<ul>') out.push('</li>');
-          out.push(`<li>${inline(m[2])}`);
+          // Task checkbox: `[ ]` open, `[x]` done, `[~]` in progress, `[!]` blocked
+          const cb = m[2].match(/^\[([ x~!])\] (.*)$/);
+          if (cb) {
+            const st = { ' ': 'open', x: 'done', '~': 'doing', '!': 'blocked' }[cb[1]];
+            const glyph = { open: '', done: '✓', doing: '·', blocked: '!' }[st];
+            out.push(`<li class="t-${st}"><span class="cb cb-${st}">${glyph}</span>${inline(cb[2])}`);
+          } else {
+            out.push(`<li>${inline(m[2])}`);
+          }
         }
         i--;
         out.push(`</li>${depth ? '</ul></li>' : ''}</${tag}>`);
@@ -630,12 +638,31 @@ if (process.argv[2] === 'render') {
   const planAnchor = (p) => `plan-${path.basename(p, '.md')}`;
   const planLink = (p) => `<a href="#${planAnchor(p)}">${esc(path.basename(p, '.md'))}</a>`;
 
+  // Task progress, from checkbox tasks in the plan's markdown. Computed at
+  // render time — re-render after ticking a task and the bar moves.
+  function planProgress(md) {
+    const n = { open: 0, done: 0, doing: 0, blocked: 0 };
+    for (const m of md.matchAll(/^\s*(?:[-*]|\d+\.) \[([ x~!])\]/gm))
+      n[{ ' ': 'open', x: 'done', '~': 'doing', '!': 'blocked' }[m[1]]] += 1;
+    const total = n.open + n.done + n.doing + n.blocked;
+    if (!total) return null;
+    const seg = (k) => (n[k] ? `<span class="p-${k}" style="width:${(100 * n[k] / total).toFixed(1)}%"></span>` : '');
+    const label = `${n.done} of ${total} tasks done`
+      + (n.doing ? ` · ${n.doing} in progress` : '') + (n.blocked ? ` · ${n.blocked} blocked` : '');
+    return { label, segs: seg('done') + seg('doing') + seg('blocked') };
+  }
+  const progressOf = (relPlan) => {
+    const abs = path.join(ROOT, relPlan ?? '');
+    return relPlan && fs.existsSync(abs) ? planProgress(fs.readFileSync(abs, 'utf8')) : null;
+  };
+
   // ── overview tables ──
   const capRows = Object.entries(caps).map(([cap, c]) => {
     const d = derived[cap];
     return `<tr><td><code>${esc(cap)}</code></td>`
       + `<td>${c.spec ? `<a href="#spec-${esc(cap)}">${esc(c.spec)}</a>` : '—'}</td>`
-      + `<td>${c.spec ? (c._state === 'in sync' ? `${badge(c._state)} <code class="pin">${esc(shortPin(c.pinned))}</code>` : `${badge(c._state)} → ${planLink(c.plan ?? '')}`) : '—'}</td>`
+      + `<td>${c.spec ? (c._state === 'in sync' ? `${badge(c._state)} <code class="pin">${esc(shortPin(c.pinned))}</code>`
+        : `${badge(c._state)} → ${planLink(c.plan ?? '')}${(() => { const p = progressOf(c.plan); return p ? `<div class="bar bar-mini" title="${esc(p.label)}">${p.segs}</div>` : ''; })()}`) : '—'}</td>`
       + `<td><code>${esc(c.status)}</code></td>`
       + `<td>${d ? `${d.verified}/${d.total}` : '—'}</td>`
       + `<td class="paths">${(c.paths ?? []).map((p) => `<code>${esc(p)}</code>`).join('<br>')}</td></tr>`;
@@ -682,10 +709,13 @@ ${mdToHtml(body)}
     : [];
   const planSections = planFiles.map((abs) => {
     const cap = activePlans.get(path.resolve(abs));
+    const md = fs.readFileSync(abs, 'utf8');
+    const p = planProgress(md);
     return `<section id="${planAnchor(abs)}">
 <h2>${esc(path.basename(abs, '.md'))} ${cap ? `<span class="badge b-out">active — ${esc(cap)}</span>` : '<span class="badge b-done">implemented</span>'}</h2>
 <div class="meta">${esc(path.relative(ROOT, abs))}</div>
-${mdToHtml(fs.readFileSync(abs, 'utf8'))}
+${p ? `<div class="bar">${p.segs}</div><div class="bar-label">${esc(p.label)}</div>` : ''}
+${mdToHtml(md)}
 </section>`;
   }).join('\n');
 
@@ -748,6 +778,22 @@ section#overview { margin-top: 0; padding-top: 0; border-top: none; }
 .fm-row > span { flex: 0 0 7.5rem; color: var(--muted); }
 .evidence { font-size: .85rem; color: var(--muted); margin: .2rem 0 .8rem; }
 .evidence > span { font-weight: 600; }
+.bar { display: flex; height: 6px; border-radius: 3px; overflow: hidden;
+  background: var(--code-bg); margin: .25rem 0; }
+.bar span { display: block; height: 100%; }
+.bar .p-done { background: var(--sync); }
+.bar .p-doing { background: var(--link); }
+.bar .p-blocked { background: var(--out); }
+.bar-mini { max-width: 9rem; margin-top: .35rem; }
+.bar-label { font-size: .78rem; color: var(--muted); margin-bottom: 1rem; }
+.cb { display: inline-flex; align-items: center; justify-content: center;
+  width: 1em; height: 1em; margin-right: .45em; border-radius: 3px;
+  font-size: .8em; font-weight: 700; vertical-align: .05em;
+  background: var(--code-bg); color: var(--muted); }
+.cb-done { background: var(--sync-bg); color: var(--sync); }
+.cb-doing { background: var(--target-bg); color: var(--link); }
+.cb-blocked { background: var(--out-bg); color: var(--out); }
+li.t-done { color: var(--muted); }
 h3.stmt { padding-top: .5rem; }
 :target { scroll-margin-top: 1rem; }
 :target > code:first-child, h3:target { outline: none; }

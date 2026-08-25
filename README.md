@@ -37,7 +37,9 @@ A repo that adopts this carries a `specs/` directory:
   - `render` — writes `specs/registry.html`, a self-contained browsable
     rendering of the registry, every spec, and every plan in `docs/changes/`.
     Statement IDs are anchors, so plans link to the statements they cite;
-    pin states show as badges. A view for humans — the markdown stays the
+    pin states show as badges. Checkbox tasks in a plan (`- [ ]` / `- [x]` /
+    `- [~]` in progress / `- [!]` blocked) become a progress bar that
+    advances as spec-implement ticks them. A view for humans — the markdown stays the
     truth, and agents never read the HTML. Commit it or gitignore it as you
     prefer; output is deterministic, so regeneration is diff-quiet
 
