@@ -34,6 +34,14 @@ A repo that adopts this carries a `specs/` directory:
   - `owns <files>` — maps a diff to owning capabilities, seams, or unowned
   - `pin <capability>` — records the spec file's content hash as what the
     code satisfies; the last act of implementing
+  - `render` — writes `specs/registry.html`, a self-contained browsable
+    rendering of the registry, every spec, and every plan in `docs/changes/`.
+    Statement IDs are anchors, so plans link to the statements they cite;
+    pin states show as badges. Checkbox tasks in a plan (`- [ ]` / `- [x]` /
+    `- [~]` in progress / `- [!]` blocked) become a progress bar that
+    advances as spec-implement ticks them. A view for humans — the markdown stays the
+    truth, and agents never read the HTML. Commit it or gitignore it as you
+    prefer; output is deterministic, so regeneration is diff-quiet
 
 The layer is ambient, not opt-in: `spec-init` also installs a git pre-commit
 hook (blocks commits that stage `specs/` while `check` fails; warns when

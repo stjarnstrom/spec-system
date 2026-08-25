@@ -46,6 +46,9 @@ compiles".
      honestly.
    - Never weaken or delete a test named in any `verified-by:` without
      flagging it — that detaches evidence from a statement.
+   - Keep the plan's checkboxes true as you go: `- [~]` when a task starts,
+     `- [x]` when its statements have evidence, `- [!]` with a one-line
+     reason when blocked. The plan is the progress record.
 
 3. **Full verification.** The registry gate, the repo's test suite, and its
    typecheck/lint must all pass — the repo's own conventions say which
@@ -61,8 +64,9 @@ compiles".
    aspirationally.
 
 5. **Close the loop.** Annotate the anomaly-list entries the amendment
-   consumed (e.g. mark them `[consumed: <plan>]`). Run `sync`. Report
-   per task with statement IDs and the new verified count.
+   consumed (e.g. mark them `[consumed: <plan>]`). Run `sync`; if
+   `specs/registry.html` is tracked, run `render` so its progress bars
+   match. Report per task with statement IDs and the new verified count.
 
 ## Rules
 
