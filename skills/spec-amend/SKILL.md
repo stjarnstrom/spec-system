@@ -50,7 +50,7 @@ stops. Implementation is spec-implement's job.
    that work is outstanding — `check` will demand a `plan:` for it. Nothing
    else to bump.
 
-5. **Derive the plan from the delta** — `docs/changes/<date>-<spec>-<topic>.md`,
+5. **Derive the plan from the delta** — `docs/changes/active/<date>-<spec>-<topic>.md`,
    named in the registry's `plan:` field:
    - A delta table: every touched statement, its change, its source anomaly.
    - Tasks that name the statements they satisfy, written as checkboxes:

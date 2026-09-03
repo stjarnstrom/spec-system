@@ -33,9 +33,11 @@ A repo that adopts this carries a `specs/` directory:
   - `sync` — regenerates the REGISTRY.md tables
   - `owns <files>` — maps a diff to owning capabilities, seams, or unowned
   - `pin <capability>` — records the spec file's content hash as what the
-    code satisfies; the last act of implementing
+    code satisfies; the last act of implementing. Also moves the named plan
+    from `docs/changes/active/` to `docs/changes/completed/` and drops `plan:`
   - `render` — writes `specs/registry.html`, a self-contained browsable
-    rendering of the registry, every spec, and every plan in `docs/changes/`.
+    rendering of the registry, every spec, and every plan in
+    `docs/changes/active/` and `docs/changes/completed/`.
     Statement IDs are anchors, so plans link to the statements they cite;
     pin states show as badges. Checkbox tasks in a plan (`- [ ]` / `- [x]` /
     `- [~]` in progress / `- [!]` blocked) become a progress bar that
@@ -46,7 +48,10 @@ A repo that adopts this carries a `specs/` directory:
 The layer is ambient, not opt-in: `spec-init` also installs a git pre-commit
 hook (blocks commits that stage `specs/` while `check` fails; warns when
 staged code is spec-owned with no spec delta) and a section in the host
-repo's agent instruction file so any agent session knows the rules.
+repo's agent instruction file so any agent session knows the rules. That
+section includes a knowledge-layout map (vocabulary, ADRs, product briefs,
+plans). `spec-init` does not create those folders — see
+[docs/KNOWLEDGE.md](docs/KNOWLEDGE.md).
 
 ## Skills
 

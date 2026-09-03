@@ -15,7 +15,8 @@ code is the artifact — changes go spec-first.
   output). Unowned files and seams carry no spec obligations.
 - If a change alters behaviour described by a spec, **amend the spec first**
   (`spec-system:spec-amend` — it produces the plan), then implement against
-  the plan (`spec-system:spec-implement` — moving the pin is the last act).
+  the plan (`spec-system:spec-implement` — pin is the last act: it archives
+  the plan to `docs/changes/completed/`).
   Never let code drift silently from its spec.
 - Reviewing a diff against the specs is `spec-system:spec-review` — verdicts
   are per statement ID (CONSISTENT / CONTRADICTS / DRIFT / RESOLVES).
@@ -23,3 +24,18 @@ code is the artifact — changes go spec-first.
   `specs/`. The pre-commit hook enforces this and warns on owned-code changes
   without a spec delta — install it once per clone:
   `ln -sf ../../specs/hooks/pre-commit .git/hooks/pre-commit`
+
+## Knowledge layout
+
+`specs/` is capability truth ([specs/FORMAT.md](specs/FORMAT.md) — "Where other
+knowledge lives"). Do not put rationale, feature intent, or history in a spec.
+
+- Vocabulary: `CONTEXT.md` / `docs/TERMINOLOGY.md` if present
+- Rationale: `docs/adr/`
+- Feature intent: `docs/product-specs/` (not a spec — a desired-tense brief)
+- Plans: `docs/changes/active/` while outstanding, `docs/changes/completed/`
+  after `node specs/registry.mjs pin`
+- Vendor/tool dumps: `docs/references/`
+
+Create the first file in a directory when you have something to put there.
+Do not scaffold empty trees.

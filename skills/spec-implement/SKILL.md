@@ -58,10 +58,14 @@ compiles".
 
 4. **Move the pin — the last act.** Only when every task has landed, run
    `node specs/registry.mjs pin <capability>` — it records the spec file's
-   content hash as what the code now satisfies. Partial delivery leaves the
-   pin where it is: update the plan with what landed and what remains, and say
-   so plainly. The file/pin mismatch is the record; never close it
-   aspirationally.
+   content hash as what the code now satisfies, moves the plan from
+   `docs/changes/active/` to `docs/changes/completed/`, and drops `plan:`.
+   Partial delivery leaves the pin where it is: update the plan with what
+   landed and what remains, and say so plainly. The file/pin mismatch is the
+   record; never close it aspirationally. If the plan is still in `active/`
+   after pin, the vendored `registry.mjs` is older than this convention:
+   move the file and delete the `plan:` line yourself, then suggest upgrading
+   the substrate (compare `TOOL_VERSION`).
 
 5. **Close the loop.** Annotate the anomaly-list entries the amendment
    consumed (e.g. mark them `[consumed: <plan>]`). Run `sync`; if

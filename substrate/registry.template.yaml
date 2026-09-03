@@ -5,6 +5,7 @@
 #
 # Statuses: unspecified | partial | adopted | contested | unspecified by design
 # Paths: `path` owns the file, `path#symbol` one symbol, `dir/**` a subtree.
+# plan: docs/changes/active/<date>-<spec>-<topic>.md  — required while pin ≠ file
 # Boundaries start as PROPOSALS — confirm each before adopting against it.
 
 capabilities: {}
