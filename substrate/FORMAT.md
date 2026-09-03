@@ -73,10 +73,12 @@ model:
 
 **The file/pin mismatch is the backlog**, and it is the only place the system
 records that the spec is currently a target rather than a description. Moving
-the pin is the last act of implementing, never part of amending. An editorial
-edit that changes no behaviour (a typo, a clarification) is re-pinned in the
-same commit — the pin move is the human's assertion that the code still
-satisfies the file as written.
+the pin is the last act of implementing, never part of amending: `pin`
+records the new hash, moves the plan from `docs/changes/active/` to
+`docs/changes/completed/`, and drops `plan:`. An editorial edit that changes
+no behaviour (a typo, a clarification) is re-pinned in the same commit — the
+pin move is the human's assertion that the code still satisfies the file as
+written.
 
 Verification is a third axis, carried in the registry's `verified` column as
 `<verified>/<total>` requirements. An `adopted` spec with no tests behind it is a
@@ -189,3 +191,36 @@ Adoption is the special case that describes reality and changes nothing.
 **Adoption never smuggles in a fix**: the pin asserts the code satisfies the spec
 right now, and a pin that is a lie from birth makes every later drift check
 worthless.
+
+## Plans
+
+An outstanding amendment names its plan in the registry's `plan:` field. The
+file lives at `docs/changes/active/<date>-<spec>-<topic>.md`. `check` requires
+that path (or a legacy flat `docs/changes/<file>.md`, so already-adopted repos
+do not break). An outstanding `plan:` under `docs/changes/completed/` is an
+error — that directory is the audit trail, not the backlog.
+
+A plan is not a spec. It has history (checkboxes, what landed) because it is
+the progress record. Completed plans stay in the repo so agents can see what
+a migration did without reading git. After `pin`, `plan:` is gone; render
+discovers completed plans by walking the directory.
+
+## Where other knowledge lives
+
+The spec layer is one kind of knowledge. A host repo may grow more; none of
+it belongs in `specs/`.
+
+| kind | where | tense |
+|---|---|---|
+| vocabulary | `CONTEXT.md`, `docs/TERMINOLOGY.md` | present |
+| rationale | `docs/adr/` | past |
+| feature intent | `docs/product-specs/` | desired |
+| outstanding work | `docs/changes/active/` | during |
+| implemented work | `docs/changes/completed/` | past |
+| vendor/tool dumps | `docs/references/` | external |
+| **truth** | `specs/` | **present** |
+
+`spec-init` does not create these folders. An empty `docs/product-specs/` is
+ceremony. The first ADR, the first product brief, the first plan — that is
+when the directory appears. Agents find the map in the host `AGENTS.md`
+section; this file is the schema it points at.

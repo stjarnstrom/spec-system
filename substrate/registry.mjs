@@ -11,7 +11,9 @@
 //
 //   node specs/registry.mjs pin <capability>   set the capability's pin to its
 //                                   spec file's current content hash — the last
-//                                   act of implementing, never part of amending
+//                                   act of implementing, never part of amending.
+//                                   Moves the named plan to
+//                                   docs/changes/completed/ and drops plan:
 //
 //   node specs/registry.mjs render  run check, then write specs/registry.html —
 //                                   a self-contained browsable rendering of the
@@ -32,7 +34,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 
-export const TOOL_VERSION = '0.5.0';
+export const TOOL_VERSION = '0.6.0';
 
 // Identical to `git hash-object <file>` — pins survive with or without git.
 function blobHash(abs) {
@@ -40,6 +42,17 @@ function blobHash(abs) {
   return crypto.createHash('sha1').update(`blob ${buf.length}\0`).update(buf).digest('hex');
 }
 const shortPin = (p) => (typeof p === 'string' && p !== 'none' ? p.slice(0, 12) : String(p));
+
+// Plans live in docs/changes/active/ while outstanding and move to
+// docs/changes/completed/ when pin runs. A flat docs/changes/*.md path is
+// legacy — check still accepts it so already-adopted repos do not break.
+function classifyPlan(rel) {
+  const n = String(rel ?? '').replaceAll('\\', '/');
+  if (n.startsWith('docs/changes/completed/')) return 'completed';
+  if (n.startsWith('docs/changes/active/')) return 'active';
+  if (/^docs\/changes\/[^/]+\.md$/.test(n)) return 'legacy';
+  return 'other';
+}
 
 // The specs dir is found from the working directory (walk up to the nearest
 // specs/registry.yaml), so one copy of this script serves any repo it is run
@@ -312,21 +325,46 @@ if (process.argv[2] === 'pin') {
   if (!c || !c.spec) { console.error(`✗ pin: "${cap ?? '<capability>'}" is not a capability with a spec`); process.exit(2); }
   const h = blobHash(path.join(SPECS, c.spec));
   if (c.pinned === h) { console.log(`✓ ${cap}: already pinned at ${shortPin(h)}`); process.exit(0); }
+
+  // Pin is the last act: move the outstanding plan to completed/ before
+  // touching the yaml, so a failed move cannot leave an in-sync pin with
+  // an active plan. Dropping `plan:` is the record that work is no longer
+  // outstanding — completed plans are discovered by walking the directory.
+  let moved = null;
+  if (c.plan) {
+    const from = path.join(ROOT, c.plan);
+    if (fs.existsSync(from) && classifyPlan(c.plan) !== 'completed') {
+      const destDir = path.join(ROOT, 'docs', 'changes', 'completed');
+      fs.mkdirSync(destDir, { recursive: true });
+      const dest = path.join(destDir, path.basename(c.plan));
+      if (fs.existsSync(dest) && path.resolve(from) !== path.resolve(dest)) {
+        console.error(`✗ pin: cannot move plan — ${path.relative(ROOT, dest)} already exists`);
+        process.exit(2);
+      }
+      fs.renameSync(from, dest);
+      moved = path.relative(ROOT, dest).replaceAll('\\', '/');
+    }
+  }
+
   const regPath = path.join(SPECS, 'registry.yaml');
   const lines = fs.readFileSync(regPath, 'utf8').split('\n');
   const start = lines.findIndex((l) => new RegExp(`^\\s+${cap}: *$`).test(l));
   if (start === -1) { console.error(`✗ pin: cannot find "${cap}:" in registry.yaml`); process.exit(2); }
   const indent = lines[start].match(/^ */)[0].length;
   let done = false;
-  for (let n = start + 1; n < lines.length; n++) {
+  for (let n = start + 1; n < lines.length; ) {
     const l = lines[n];
     if (l.trim() && !/^\s*#/.test(l) && l.match(/^ */)[0].length <= indent) break;
     const m = l.match(/^(\s+pinned:) .*$/);
-    if (m) { lines[n] = `${m[1]} ${h}`; done = true; break; }
+    if (m) { lines[n] = `${m[1]} ${h}`; done = true; n++; continue; }
+    if (/^\s+plan:\s/.test(l)) { lines.splice(n, 1); continue; }
+    n++;
   }
   if (!done) { console.error(`✗ pin: no pinned: line under "${cap}" — add one (\`pinned: none\`) first`); process.exit(2); }
   fs.writeFileSync(regPath, lines.join('\n'));
-  console.log(`✓ ${cap}: pinned at ${shortPin(h)} (was ${shortPin(c.pinned)}) — run check before committing`);
+  console.log(`✓ ${cap}: pinned at ${shortPin(h)} (was ${shortPin(c.pinned)})`
+    + (moved ? ` — plan moved to ${moved}` : '')
+    + ' — run check before committing');
   process.exit(0);
 }
 
@@ -406,6 +444,16 @@ for (const [cap, c] of Object.entries(caps)) {
       err(`${cap}: spec file does not match the pin (${c._state}) but no plan is named`);
     if (c.plan && !fs.existsSync(path.join(ROOT, c.plan)))
       err(`${cap}: plan file missing: ${c.plan}`);
+    if (c.plan) {
+      const kind = classifyPlan(c.plan);
+      if (c._state && c._state !== 'in sync') {
+        if (kind === 'completed')
+          err(`${cap}: outstanding plan must live in docs/changes/active/, not completed/: ${c.plan}`);
+        else if (kind === 'other')
+          err(`${cap}: plan must live in docs/changes/active/: ${c.plan}`);
+      } else if (c._state === 'in sync' && kind === 'active')
+        err(`${cap}: in sync but plan is still in docs/changes/active/ — pin moves it to completed/ and drops plan:`);
+    }
 
     const parsed = parseSpec(cap, c);
     if (parsed) {
@@ -701,19 +749,34 @@ ${mdToHtml(body)}
 </section>`;
   }).join('\n');
 
-  // ── plan sections: everything in docs/changes/, active ones badged ──
+  // ── plan sections: active/, completed/, plus legacy flat docs/changes/*.md ──
   const activePlans = new Map(Object.entries(caps).filter(([, c]) => c.plan && c._state !== 'in sync').map(([cap, c]) => [path.resolve(ROOT, c.plan), cap]));
-  const plansDir = path.join(ROOT, 'docs', 'changes');
-  const planFiles = fs.existsSync(plansDir)
-    ? fs.readdirSync(plansDir).filter((f) => f.endsWith('.md')).sort().reverse().map((f) => path.join(plansDir, f))
-    : [];
+  const skipPlanName = new Set(['README.md', 'index.md', 'KNOWLEDGE.md']);
+  const collectPlans = (dir) => {
+    if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return [];
+    return fs.readdirSync(dir)
+      .filter((f) => f.endsWith('.md') && !skipPlanName.has(f))
+      .map((f) => path.join(dir, f))
+      .filter((abs) => fs.statSync(abs).isFile())
+      .sort()
+      .reverse();
+  };
+  const changesDir = path.join(ROOT, 'docs', 'changes');
+  const planFiles = [
+    ...collectPlans(path.join(changesDir, 'active')),
+    ...collectPlans(changesDir).filter((abs) => path.dirname(abs) === changesDir),
+    ...collectPlans(path.join(changesDir, 'completed')),
+  ];
   const planSections = planFiles.map((abs) => {
     const cap = activePlans.get(path.resolve(abs));
+    const rel = path.relative(ROOT, abs).replaceAll('\\', '/');
+    const kind = classifyPlan(rel);
+    const active = kind === 'active' || (kind === 'legacy' && cap);
     const md = fs.readFileSync(abs, 'utf8');
     const p = planProgress(md);
     return `<section id="${planAnchor(abs)}">
-<h2>${esc(path.basename(abs, '.md'))} ${cap ? `<span class="badge b-out">active — ${esc(cap)}</span>` : '<span class="badge b-done">implemented</span>'}</h2>
-<div class="meta">${esc(path.relative(ROOT, abs))}</div>
+<h2>${esc(path.basename(abs, '.md'))} ${active ? `<span class="badge b-out">active${cap ? ` — ${esc(cap)}` : ''}</span>` : '<span class="badge b-done">implemented</span>'}</h2>
+<div class="meta">${esc(rel)}</div>
 ${p ? `<div class="bar">${p.segs}</div><div class="bar-label">${esc(p.label)}</div>` : ''}
 ${mdToHtml(md)}
 </section>`;

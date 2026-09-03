@@ -70,8 +70,10 @@ live links. This repo IS the plugin: `.claude-plugin/plugin.json` at the root, s
 
 Folded into spec-amend's tail rather than a separate skill: the plan is a
 function of the delta and goes stale the moment the spec moves again.
-`docs/changes/2026-08-sim-ingest-v2.md` is the shape: a delta table naming every
-touched statement and its source anomaly, tasks that name the statements they
+`docs/changes/2026-08-sim-ingest-v2.md` is the shape (that origin-repo path is
+the evidence trail; new plans land in `docs/changes/active/` and `pin` moves
+them to `docs/changes/completed/`): a delta table naming every touched
+statement and its source anomaly, tasks that name the statements they
 satisfy, done defined as *evidence exists*, and an explicit out-of-scope section.
 
 ### spec-implement — build against the plan and move the pin

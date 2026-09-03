@@ -34,8 +34,9 @@ In Claude Code:
    work; file changed since the pin = an amendment awaits implementation;
    `none` = the code doesn't exist yet. **The mismatch is the backlog.**
 4. Every change is a migration from the pinned content to the amended file:
-   amend → plan derived from the delta → implement test-first → move the pin
-   last (`node specs/registry.mjs pin <capability>`).
+   amend → plan in `docs/changes/active/` derived from the delta → implement
+   test-first → move the pin last (`node specs/registry.mjs pin <capability>`),
+   which archives the plan to `docs/changes/completed/`.
 5. `node specs/registry.mjs check` validates all of it and runs every
    invariant's tripwire; a pre-commit hook runs it for you.
 
@@ -100,9 +101,28 @@ File findings as issues on this repo, or just write them down raw. The
 anomaly-list discipline applies to the system itself: observe first, fix
 by amendment.
 
+## Knowledge layout (host repos)
+
+`specs/` is the only folder the plugin requires. Everything else is
+recommended, not scaffolded — write the first file when you have something
+to put there. The host `AGENTS.md` section is the map; `specs/FORMAT.md`
+is the schema it points at. The why is in [KNOWLEDGE.md](KNOWLEDGE.md).
+
+```
+AGENTS.md                 map (spec section + knowledge layout)
+CONTEXT.md                vocabulary, if the repo has one
+docs/adr/                 rationale
+docs/changes/active/      outstanding plans (named in plan:)
+docs/changes/completed/   implemented plans
+docs/product-specs/       feature intent, if you write those
+docs/references/          vendor/tool dumps for agents
+specs/                    capability truth + registry + FORMAT
+```
+
 ## Reference
 
 - [../README.md](../README.md) — install, tool commands, skills table
 - `specs/FORMAT.md` (in any adopted repo) — the schema, canonical
+- [KNOWLEDGE.md](KNOWLEDGE.md) — how the host knowledge layout is recommended
 - [DESIGN.md](DESIGN.md) — full design with the evidence trail
 - [ORIGIN.md](ORIGIN.md) — the handoff that started it

@@ -36,7 +36,9 @@ adopts nothing — adoption is its own act, per FORMAT.md.
    - Append the spec section to the repo's agent instruction file: adapt
      `${CLAUDE_PLUGIN_ROOT}/substrate/AGENTS.section.md` into AGENTS.md (or
      CLAUDE.md — whichever the repo treats as canonical), filling in the
-     adopted-capabilities list (right after init: "none yet").
+     adopted-capabilities list (right after init: "none yet"). That section
+     is the knowledge-layout map (plans, ADRs, product briefs). Do not
+     create those directories — the first file in each is when it appears.
 
 4. **Greenfield fork.** A repo with no (or only scaffold) history has nothing
    for co-change to read and nothing for spec-adopt to describe — skip steps
