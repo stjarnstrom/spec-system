@@ -61,11 +61,16 @@ split `specs/` into more folders.
 
 ## What is mechanical
 
-Only the plan half is enforced. `check` requires an outstanding `plan:` to
-exist and to live under `docs/changes/active/` (legacy flat
-`docs/changes/*.md` still passes). An in-sync capability must not still name
-a plan in `active/`. `pin` moves the file and drops `plan:`.
+The plan half is enforced. `check` requires an outstanding `plan:` to exist
+and to live under `docs/changes/active/` (legacy flat `docs/changes/*.md`
+still passes). An in-sync capability must not still name a plan in `active/`.
+`pin` moves the file and drops `plan:`.
 
-Vocabulary, ADRs, product briefs, and reference dumps have no gate. They
-appear when someone has something to write. The map is enough for an agent
-to put the next file in the right place.
+ADRs are gated only once the registry points at one. `adr:` on a capability,
+edge, or seam must resolve to a file that exists, the same treatment `plan:`
+and `verified-by` get — writing an ADR is never required, but a dangling
+pointer to one is an error. Rationale stays out of the spec file either way.
+
+Vocabulary, product briefs, and reference dumps have no gate. They appear
+when someone has something to write. The map is enough for an agent to put
+the next file in the right place.

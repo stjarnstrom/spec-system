@@ -45,8 +45,10 @@ or nothing (default: working tree + staged vs HEAD; if clean, `HEAD~1..HEAD`).
      that no statement covers and no amendment introduces. Spec-first means
      this arrives as an amendment; say which section of the spec it belongs in.
    - **RESOLVES <U-ID>** — the diff answers an open uncertainty in code. Flag
-     it: the answer belongs in the spec (and possibly an ADR), not only in the
-     diff.
+     it: the answer belongs in the spec, not only in the diff. If the choice
+     was hard to reverse, surprising, and a real trade-off, say that the
+     reasoning belongs in an ADR with `registry.yaml` pointing at it
+     (FORMAT.md, "Recording a decision as an ADR") — never in the spec file.
 
 5. **Pins and plans.** From the `owns` output:
    - If a touched capability's spec file no longer matches its pin, an

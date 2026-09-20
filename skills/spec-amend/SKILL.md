@@ -33,6 +33,16 @@ stops. Implementation is spec-implement's job.
      not answer it, and guessing poisons the spec. This is a hard stop, not a
      judgement call.
 
+   When the user answers an uncertainty, the answer splits in two: the
+   behaviour becomes a statement, and the reasoning behind it has no home in
+   the spec. Offer an ADR for the reasoning — but only when the decision is
+   hard to reverse, surprising without context, and a real trade-off
+   (FORMAT.md, "Recording a decision as an ADR"). Most answers are none of
+   those and need nothing. When one qualifies, write `docs/adr/NNNN-<slug>.md` (next
+   free number, one paragraph: context, decision, why) and point at it from
+   the capability's `adr:` in `registry.yaml`. The spec file never cites it,
+   and the plan records which uncertainty the answer closed.
+
 3. **Edit statements under the ID rules.**
    - **Split, don't rewrite.** Widening a verified statement silently detaches
      its evidence — the test still passes and now proves less than the spec

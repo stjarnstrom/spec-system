@@ -58,6 +58,20 @@ nothing and never runs in the same pass as an adoption.
    seams with a one-line `what:`, edges with `source: code` until a spec
    declares them. `check` must pass, then `sync`. Adoption is a separate act.
 
+7. **Record the reasoning the registry cannot hold.** A boundary the user
+   argued over, a line drawn against the co-change evidence, a capability
+   marked `contested` or `unspecified by design` — the registry states the
+   outcome and explains none of it, and the next boundary pass will re-open
+   the same argument from the same evidence.
+
+   **Offer an ADR only when all three hold** (FORMAT.md, "Recording a
+   decision as an ADR"): the decision is hard to reverse, surprising without
+   context, and a real trade-off. Most are not, and a `docs/adr/` full of
+   obvious decisions is worse than an empty one. When one qualifies, write it as
+   `docs/adr/NNNN-<slug>.md` (next free number, one paragraph is enough:
+   context, decision, why) and point at it from `registry.yaml` with `adr:`.
+   Never put the rationale in the spec file.
+
 ## Rules
 
 - Propose; never adopt, never pin, never move a pinned capability's paths
