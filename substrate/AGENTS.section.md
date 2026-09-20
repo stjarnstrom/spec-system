@@ -31,7 +31,8 @@ code is the artifact — changes go spec-first.
 knowledge lives"). Do not put rationale, feature intent, or history in a spec.
 
 - Vocabulary: `CONTEXT.md` / `docs/TERMINOLOGY.md` if present
-- Rationale: `docs/adr/`
+- Rationale: `docs/adr/`, pointed at from `registry.yaml` with `adr:` on the
+  capability, edge, or seam it explains — the spec file itself never cites one
 - Feature intent: `docs/product-specs/` (not a spec — a desired-tense brief)
 - Plans: `docs/changes/active/` while outstanding, `docs/changes/completed/`
   after `node specs/registry.mjs pin`

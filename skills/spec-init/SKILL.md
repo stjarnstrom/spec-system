@@ -39,6 +39,9 @@ adopts nothing — adoption is its own act, per FORMAT.md.
      adopted-capabilities list (right after init: "none yet"). That section
      is the knowledge-layout map (plans, ADRs, product briefs). Do not
      create those directories — the first file in each is when it appears.
+     If the repo already carries a section describing those layers (a
+     `domain-modeling` setup writes one), point at it instead of restating
+     it — two maps of the same layers will drift.
 
 4. **Greenfield fork.** A repo with no (or only scaffold) history has nothing
    for co-change to read and nothing for spec-adopt to describe — skip steps
@@ -71,6 +74,15 @@ adopts nothing — adoption is its own act, per FORMAT.md.
    evidence and ask which to confirm — naming and drawing boundaries is the
    user's decision. Do not adopt any capability in the same pass; suggest
    starting with the smallest confirmed one.
+
+9. **Record the reasoning the registry cannot hold.** Where a confirmed
+   boundary was argued over, drawn against the evidence, or landed as
+   `contested` / `unspecified by design`, offer an ADR — but only when the
+   decision is hard to reverse, surprising without context, and a real
+   trade-off (FORMAT.md, "Recording a decision as an ADR"). It goes to
+   `docs/adr/NNNN-<slug>.md`, one paragraph is enough, and `registry.yaml`
+   points at it with `adr:`. This is the moment `docs/adr/` gets created if
+   the repo has none; step 3 deliberately did not create it empty.
 
 ## Rules
 

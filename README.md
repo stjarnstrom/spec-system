@@ -25,7 +25,9 @@ A repo that adopts this carries a `specs/` directory:
   and what a spec must never contain (history, rationale).
 - `specs/registry.yaml` — machine truth: capabilities, owned paths (whole
   files, `path#symbol`, or `dir/**`), the content-hash pin, status,
-  dependency edges, seams.
+  dependency edges, seams, and `adr:` pointers to the decision records behind
+  them. Specs hold no rationale, so the registry is where the spec layer and
+  `docs/adr/` meet; `check` requires every referenced ADR file to exist.
 - `specs/REGISTRY.md` — the generated human rendering.
 - `specs/registry.mjs` — the tool (vendored, zero-dependency; js-yaml used if
   the host repo has it):

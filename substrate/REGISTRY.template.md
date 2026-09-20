@@ -15,6 +15,8 @@ statement kinds.
 file's history. A spec file that no longer matches its pin means an amendment
 is written and unimplemented; `target` means the code does not exist yet.
 `verified` counts requirements with real evidence, derived from the spec itself.
+`adr` links the decision record behind a capability, edge, or seam: specs hold
+no rationale, so the why is pointed at from the registry.
 
 ## Capabilities
 

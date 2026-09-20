@@ -1,7 +1,7 @@
 {
   "name": "spec-system",
   "description": "Spec-as-truth development: specs in specs/ are the source of truth, code is the artifact. Pins are content hashes — git holds spec history, no version numbers. Six skills: spec-init scaffolds the substrate + hook into any repo; spec-boundaries proposes capabilities from co-change evidence; spec-adopt describes existing code; spec-review checks diffs against pinned specs; spec-amend edits a spec and derives the plan from the delta; spec-implement builds test-first and moves the pin last.",
-  "version": "0.10.0",
+  "version": "0.11.0",
   "author": {
     "name": "Robert Stjärnstrom"
   }

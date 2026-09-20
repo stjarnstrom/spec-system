@@ -224,3 +224,31 @@ it belongs in `specs/`.
 ceremony. The first ADR, the first product brief, the first plan — that is
 when the directory appears. Agents find the map in the host `AGENTS.md`
 section; this file is the schema it points at.
+
+## Recording a decision as an ADR
+
+Rationale has a home in the table above, and a discipline. Record an ADR only
+when all three hold, or the directory fills with decisions nobody needed
+written down:
+
+1. **Hard to reverse** — changing your mind later costs something real.
+2. **Surprising without context** — a future reader will ask "why this way?".
+3. **A real trade-off** — there were genuine alternatives and one was picked.
+
+Three moments in this system produce exactly that kind of decision, and each
+one is a human's answer, never an agent's:
+
+- **A boundary**: where a capability's line falls and what it is called. IDs,
+  owned paths, and pins all hang off it, so it is expensive to move later.
+- **A `contested` or `unspecified by design` status**: both assert something
+  about the boundary that the registry states without explaining.
+- **An open `-U-` uncertainty being answered**: the behaviour becomes a
+  statement, and the reasoning behind the answer has no home in the spec.
+
+The file is `docs/adr/NNNN-<slug>.md`, sequentially numbered; one paragraph
+(context, decision, why) is enough. The pointer lives in `registry.yaml` as
+`adr:` on the capability, edge, or seam — one path or a list, relative to the
+repo root. `registry.mjs check` requires the file to exist, the same treatment
+`verified-by` and `plan:` get. **The spec file itself never cites an ADR**: a
+pointer in a spec is the first step back to archaeology, and the registry is
+the one place the two layers are allowed to meet.

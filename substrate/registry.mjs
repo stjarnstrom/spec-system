@@ -34,7 +34,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 
-export const TOOL_VERSION = '0.6.0';
+export const TOOL_VERSION = '0.7.0';
 
 // Identical to `git hash-object <file>` — pins survive with or without git.
 function blobHash(abs) {
@@ -425,11 +425,30 @@ if (process.argv[2] === 'owns') {
   process.exit(exit);
 }
 
+// ── rationale pointers ────────────────────────────────────────────────────────
+// `adr:` on a capability, edge, or seam names the decision record behind it —
+// one path or a list, relative to the repo root. A spec never carries
+// rationale (FORMAT.md); the registry carries the pointer to where it lives.
+
+const adrList = (x) => (x == null ? [] : Array.isArray(x) ? x : [x]);
+const adrLabel = (a) => path.basename(a).replace(/\.md$/, '');
+const adrHref = (a) => path.relative(SPECS, path.join(ROOT, a)).split(path.sep).join('/');
+const adrMd = (x) => adrList(x).map((a) => `[${adrLabel(a)}](${adrHref(a)})`).join(', ');
+const adrMdSuffix = (x) => (adrList(x).length ? ` (${adrMd(x)})` : '');
+
+function checkAdr(label, x) {
+  for (const a of adrList(x)) {
+    if (typeof a !== 'string') { err(`${label}: adr takes a path or a list of paths`); continue; }
+    if (!fs.existsSync(path.join(ROOT, a))) err(`${label}: adr file missing: ${a}`);
+  }
+}
+
 // ── main checks ───────────────────────────────────────────────────────────────
 
 const derived = {}; // cap -> {verified, total, inv, unc}
 for (const [cap, c] of Object.entries(caps)) {
   for (const p of c.paths ?? []) checkOwnedPath(cap, p, c);
+  checkAdr(cap, c.adr);
 
   if (c.spec) {
     if (!c.prefix) err(`${cap}: spec without a statement prefix`);
@@ -499,9 +518,12 @@ for (const e of reg.edges ?? []) {
   if (!(e.to in caps)) err(`edge to unknown capability ${e.to}`);
   if (e.source === 'code' && caps[e.from]?.spec)
     err(`edge ${e.from} -> ${e.to} is source: code but ${e.from} has a spec — declare it there`);
+  checkAdr(`edge ${e.from} -> ${e.to}`, e.adr);
 }
-for (const s of reg.seams ?? [])
+for (const s of reg.seams ?? []) {
   if (!fs.existsSync(path.join(ROOT, s.path))) err(`seam path missing: ${s.path}`);
+  checkAdr(`seam ${s.path}`, s.adr);
+}
 
 // In the repo that develops the plugin, the substrate copies of FORMAT.md and
 // this script are canonical — the specs/ copies must not drift from them.
@@ -533,26 +555,27 @@ if (process.argv[2] === 'sync') {
     c.spec
       ? [`[${c.spec}](${c.spec})`,
          c._state === 'in sync' ? `\`${shortPin(c.pinned)}\`` : `**${c._state}** → ${c.plan}`,
-         `\`${c.status}\``, `${derived[cellCap].verified}/${derived[cellCap].total}`]
-      : ['—', '—', `\`${c.status}\``, '—'];
+         `\`${c.status}\``, `${derived[cellCap].verified}/${derived[cellCap].total}`,
+         adrMd(c.adr) || '—']
+      : ['—', '—', `\`${c.status}\``, '—', adrMd(c.adr) || '—'];
   let cellCap;
   const rows = Object.entries(caps).map(([cap, c]) => {
     cellCap = cap;
     return `| \`${cap}\` | ${cell(c).join(' | ')} | ${(c.paths ?? []).map((p) => `\`${p}\``).join(', ')} |`;
   });
   const capTable = [
-    '| capability | spec | pin | status | verified | owned paths |',
-    '|---|---|---|---|---|---|', ...rows,
+    '| capability | spec | pin | status | verified | adr | owned paths |',
+    '|---|---|---|---|---|---|---|', ...rows,
   ].join('\n');
 
   const edgeTable = [
     '| capability | depends-on | via | reason |', '|---|---|---|---|',
-    ...(reg.edges ?? []).map((e) => `| \`${e.from}\` | \`${e.to}\` | ${e.source} | ${e.reason} |`),
+    ...(reg.edges ?? []).map((e) => `| \`${e.from}\` | \`${e.to}\` | ${e.source} | ${e.reason}${adrMdSuffix(e.adr)} |`),
   ].join('\n');
 
   const seamTable = [
     '| path | seam |', '|---|---|',
-    ...(reg.seams ?? []).map((s) => `| \`${s.path}\` | ${s.what} |`),
+    ...(reg.seams ?? []).map((s) => `| \`${s.path}\` | ${s.what}${adrMdSuffix(s.adr)} |`),
   ].join('\n');
 
   const mdPath = path.join(SPECS, 'REGISTRY.md');
@@ -575,6 +598,10 @@ if (process.argv[2] === 'sync') {
 
 if (process.argv[2] === 'render') {
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  const adrLinks = (x) => adrList(x).map((a) => `<a href="${esc(adrHref(a))}">${esc(adrLabel(a))}</a>`).join(', ');
+  const adrCell = (x) => adrLinks(x) || '—';
+  const adrSuffix = (x) => (adrList(x).length ? ` (${adrLinks(x)})` : '');
 
   // Every statement id that exists anywhere, so mentions auto-link to their
   // statement — including from plans, which cite ids constantly.
@@ -713,13 +740,14 @@ if (process.argv[2] === 'render') {
         : `${badge(c._state)} → ${planLink(c.plan ?? '')}${(() => { const p = progressOf(c.plan); return p ? `<div class="bar bar-mini" title="${esc(p.label)}">${p.segs}</div>` : ''; })()}`) : '—'}</td>`
       + `<td><code>${esc(c.status)}</code></td>`
       + `<td>${d ? `${d.verified}/${d.total}` : '—'}</td>`
+      + `<td>${adrCell(c.adr)}</td>`
       + `<td class="paths">${(c.paths ?? []).map((p) => `<code>${esc(p)}</code>`).join('<br>')}</td></tr>`;
   }).join('\n');
 
   const edgeRows = (reg.edges ?? []).map((e) =>
-    `<tr><td><code>${esc(e.from)}</code></td><td><code>${esc(e.to)}</code></td><td>${esc(e.source)}</td><td>${inline(e.reason ?? '')}</td></tr>`).join('\n');
+    `<tr><td><code>${esc(e.from)}</code></td><td><code>${esc(e.to)}</code></td><td>${esc(e.source)}</td><td>${inline(e.reason ?? '')}${adrSuffix(e.adr)}</td></tr>`).join('\n');
   const seamRows = (reg.seams ?? []).map((s) =>
-    `<tr><td><code>${esc(s.path)}</code></td><td>${inline(s.what ?? '')}</td></tr>`).join('\n');
+    `<tr><td><code>${esc(s.path)}</code></td><td>${inline(s.what ?? '')}${adrSuffix(s.adr)}</td></tr>`).join('\n');
 
   // ── spec sections ──
   const specSections = Object.entries(caps).filter(([, c]) => c.spec && c._parsed).map(([cap, c]) => {
@@ -871,7 +899,7 @@ ${nav}
 </nav>
 <section id="overview">
 <h2>Capabilities</h2>
-<table><thead><tr><th>capability</th><th>spec</th><th>pin</th><th>status</th><th>verified</th><th>owned paths</th></tr></thead>
+<table><thead><tr><th>capability</th><th>spec</th><th>pin</th><th>status</th><th>verified</th><th>adr</th><th>owned paths</th></tr></thead>
 <tbody>
 ${capRows}
 </tbody></table>

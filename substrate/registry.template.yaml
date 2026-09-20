@@ -7,6 +7,10 @@
 # Paths: `path` owns the file, `path#symbol` one symbol, `dir/**` a subtree.
 # plan: docs/changes/active/<date>-<spec>-<topic>.md  — required while pin ≠ file
 # Boundaries start as PROPOSALS — confirm each before adopting against it.
+# `adr:` names the decision record behind a capability, edge, or seam — one
+#   path or a list, relative to the repo root; `check` requires the file to
+#   exist. A spec carries no rationale (FORMAT.md), so the why of a boundary,
+#   a contested status, or a resolved uncertainty is pointed at from here.
 
 capabilities: {}
 
@@ -15,7 +19,9 @@ capabilities: {}
 #     to: <capability>
 #     source: code        # spec, once the from-capability declares it
 #     reason: <one line>
+#     adr: docs/adr/0004-<slug>.md      # optional
 
 # seams:
 #   - path: <path every capability crosses and none owns>
 #     what: <one line>
+#     adr: docs/adr/0005-<slug>.md      # optional
