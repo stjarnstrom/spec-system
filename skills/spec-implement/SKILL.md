@@ -49,14 +49,25 @@ compiles".
    - Keep the plan's checkboxes true as you go: `- [~]` when a task starts,
      `- [x]` when its statements have evidence, `- [!]` with a one-line
      reason when blocked. The plan is the progress record.
+   - Before `- [x]`, judge the task's diff against the statements it names.
+     Apply spec-review's verdicts yourself. Do not start a second review
+     skill, and do not keep a ruling ledger. A named statement is satisfied
+     when the diff matches it and its evidence exists, shown by command
+     output from this turn. CONSISTENT covers statements this task was not
+     supposed to change. CONTRADICTS or DRIFT on anything else means the
+     task is not done: fix it, or stop and send it back to spec-amend. A
+     diff that picks a side of an open `-U-` is a stop, not a ruling.
 
 3. **Full verification.** The registry gate, the repo's test suite, and its
    typecheck/lint must all pass — the repo's own conventions say which
    commands. Fix what the diff broke, including fixture ripples in other
    capabilities' tests (their owners' evidence must keep proving what it
-   proved before).
+   proved before). No claim that this passed without the command output
+   from this turn. An earlier run does not count.
 
-4. **Move the pin — the last act.** Only when every task has landed, run
+4. **Move the pin — the last act.** Only when every task has landed, and
+   the report cites the fresh `node specs/registry.mjs check` output and
+   the fresh test output from step 3, run
    `node specs/registry.mjs pin <capability>` — it records the spec file's
    content hash as what the code now satisfies, moves the plan from
    `docs/changes/active/` to `docs/changes/completed/`, and drops `plan:`.

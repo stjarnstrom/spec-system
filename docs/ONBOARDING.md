@@ -107,6 +107,8 @@ by amendment.
 recommended, not scaffolded — write the first file when you have something
 to put there. The host `AGENTS.md` section is the map; `specs/FORMAT.md`
 is the schema it points at. The why is in [KNOWLEDGE.md](KNOWLEDGE.md).
+Which outside skills to run beside this layer, and which verbs would
+collide with it, is in [COMPOSITION.md](COMPOSITION.md).
 
 ```
 AGENTS.md                 map (spec section + knowledge layout)
@@ -124,5 +126,6 @@ specs/                    capability truth + registry + FORMAT
 - [../README.md](../README.md) — install, tool commands, skills table
 - `specs/FORMAT.md` (in any adopted repo) — the schema, canonical
 - [KNOWLEDGE.md](KNOWLEDGE.md) — how the host knowledge layout is recommended
+- [COMPOSITION.md](COMPOSITION.md) — skills that sit beside the spec layer
 - [DESIGN.md](DESIGN.md) — full design with the evidence trail
 - [ORIGIN.md](ORIGIN.md) — the handoff that started it

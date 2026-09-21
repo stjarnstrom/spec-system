@@ -31,11 +31,16 @@ stops. Implementation is spec-implement's job.
    - **Nothing yet** if it depends on an open `-U-` uncertainty: **stop and
      ask the user** the uncertainty's question. Reading the code again will
      not answer it, and guessing poisons the spec. This is a hard stop, not a
-     judgement call.
+     judgement call. The answer comes from the user, or from a throwaway
+     prototype, a cited research note, or a questionnaire for the person who
+     can answer. Each of those runs outside this skill, and only when the
+     host already has a skill for it. This skill does not guess, and it
+     does not write code.
 
-   When the user answers an uncertainty, the answer splits in two: the
-   behaviour becomes a statement, and the reasoning behind it has no home in
-   the spec. Offer an ADR for the reasoning — but only when the decision is
+   When the user answers an uncertainty — including an answer brought back
+   from a prototype, a research note, or a questionnaire — the answer splits
+   in two: the behaviour becomes a statement, and the reasoning behind it
+   has no home in the spec. Offer an ADR for the reasoning — but only when the decision is
    hard to reverse, surprising without context, and a real trade-off
    (FORMAT.md, "Recording a decision as an ADR"). Most answers are none of
    those and need nothing. When one qualifies, write `docs/adr/NNNN-<slug>.md` (next
