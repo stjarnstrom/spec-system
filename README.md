@@ -67,6 +67,8 @@ plans). `spec-init` does not create those folders — see
 | `spec-implement` | build against the plan test-first (a delta statement is a genuine falsifier), done = evidence exists per statement, pin move as the last act |
 
 New here? Start with [docs/ONBOARDING.md](docs/ONBOARDING.md).
+How grilling, test-first work, diagnosis, and the other neighbouring
+skills land on this layer: [docs/COMPOSITION.md](docs/COMPOSITION.md).
 
 ## Where the rules come from
 

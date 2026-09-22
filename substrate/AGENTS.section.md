@@ -40,3 +40,15 @@ knowledge lives"). Do not put rationale, feature intent, or history in a spec.
 
 Create the first file in a directory when you have something to put there.
 Do not scaffold empty trees.
+
+## Neighbouring practices
+
+Grilling, test-first work, and diagnosis stay outside this section, in
+whatever skills the host already uses.
+
+A failure against a pinned statement is a code fix and a `verified-by`
+update, unless the statement itself is wrong — then it is an amendment.
+
+A design question the code cannot answer stops at spec-amend and comes
+back as a statement. Guessing it into the spec is the failure this stop
+exists to prevent.
