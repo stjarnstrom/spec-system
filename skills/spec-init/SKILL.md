@@ -39,14 +39,20 @@ adopts nothing — adoption is its own act, per FORMAT.md.
      adopted-capabilities list (right after init: "none yet"). That section
      is the knowledge-layout map (plans, ADRs, product briefs). Do not
      create those directories — the first file in each is when it appears.
+   - Fill the section's verification commands — test, typecheck, lint —
+     from the repo's manifest (package.json scripts, Makefile, Cargo.toml,
+     pyproject.toml), and run each once to confirm it works. An unattended
+     run (spec-run) verifies with exactly these; drop any the repo lacks,
+     and ask the user when none is discoverable.
      If the repo already carries a section describing those layers (a
      `domain-modeling` setup writes one), point at it instead of restating
      it — two maps of the same layers will drift.
 
 4. **Greenfield fork.** A repo with no (or only scaffold) history has nothing
    for co-change to read and nothing for spec-adopt to describe — skip steps
-   5 and 6 and invert the flow: capabilities come from the user's intent, and
-   each first spec is written as a **target**, not a description. Its
+   5 and 6 and invert the flow: capabilities come from the user's intent —
+   spec-system:spec-shape interviews for it — and each first spec is written
+   as a **target**, not a description. Its
    registry entry carries `pinned: none` with a `plan:` — the missing pin is
    the record that the code does not exist yet, `check` notes (rather than
    rejects) owned paths not yet on disk while it is open, and spec-implement

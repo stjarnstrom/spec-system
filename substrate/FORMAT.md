@@ -138,7 +138,9 @@ Evidence is many-to-many. On a requirement, `verified-by` takes one or more
 entries, comma- or newline-separated:
 
 - `path/to/file.test.ts` — the file covers it
-- `path/to/file.test.ts#describe name` — that block covers it
+- `path/to/file.test.ts#describe name` — that block covers it (a comma
+  inside the name is kept; a comma separates entries only where a path or
+  `UNVERIFIED` follows it)
 - `UNVERIFIED` — nothing covers it
 
 `UNVERIFIED` is a signal to keep, not a gap to paper over. **Do not write a test
@@ -205,6 +207,75 @@ the progress record. Completed plans stay in the repo so agents can see what
 a migration did without reading git. After `pin`, `plan:` is gone; render
 discovers completed plans by walking the directory.
 
+A plan records decisions, not code. It names the statements each task must
+make true and leaves the code to the implementer — a plan longer than the
+code it describes has written the code instead. Its shape:
+
+```markdown
+# <spec>: <topic>
+
+capability: sim-ingest · spec: specs/sim-ingest.md · from: <pin, 12 chars, or none>
+
+## Delta
+| statement | change | source |
+|---|---|---|
+| SIMI-014 | new | anomaly: step files with a bad root abort the run |
+| SIMI-009 | withdrawn | decision (shaped 2026-09-25) |
+
+## Test seams
+- `loadSimulation(path)` — every delta statement is tested through it
+
+## Review focus
+- a step file that is empty, not merely malformed
+
+## Constraints
+- no new runtime dependencies
+
+## Tasks
+- [ ] **T1** — Skip unparseable step files · SIMI-014 · after: —
+- [ ] **T2** — Withdraw the XML fallback · SIMI-009 · after: T1
+- [ ] **T3** — Delete the dead retry branch · plan-only: no observable behaviour · independent
+- [ ] **T4** — [human] Rotate the fixture signing key · after: T2
+
+## Out of scope
+- anomaly: duplicate key in the step schema (seam defect, ordinary work)
+
+## Run log
+```
+
+- **Test seams** name the contract every delta statement is tested through —
+  the highest one that reaches the behaviour, ideally one per plan. Tests
+  live there and nowhere else.
+- **Review focus** lists at most five inputs or failure modes the spec
+  implies but no statement names. Each one gets a pinning test in the task
+  that owns it; the reviewer reads this section as its attention lens.
+- **Constraints** (optional) are the limits the implementation must keep
+  that are not behaviour — dependencies, a performance envelope,
+  compatibility. Every task's brief carries them.
+- **Tasks** are top-level checkboxes, one line each:
+  `**T<n>** — <title> · <statement ids, or plan-only: <reason>> · after: <T ids or —>`,
+  or `independent` in place of `after:` when the task shares no file or
+  interface with any other. Detail goes on indented lines under the task,
+  never as nested checkboxes. `[human]` marks a task only a person can do
+  (credentials, a dashboard, a sign-off); an unattended run parks it.
+  `- [ ]` open, `- [~]` in progress, `- [x]` done, `- [!]` parked. A task
+  is done when its statements have evidence, not when the code compiles.
+- **Run log** is appended by the run, one line per event, and is what a run
+  resumes from after its context is compacted:
+  `T2: started (base 3f9a1c2)` · `T2: ruling — <decided> — <why> — <cost if wrong>` ·
+  `T2: fix round 2/5 — 1 addressed, 1 open` · `T2: parked — <question>` ·
+  `T2: minor (deferred) — <finding>` · `T2: complete (3f9a1c2..8be41d0, tests: <cmd> → <last line>)`.
+  A ruling decides *how*, never *what*: a question about observable
+  behaviour parks the task instead. Rulings stay in the plan after it moves
+  to `completed/`, so a decision made during a run is never made in secret.
+
+**Standalone plans.** Work that changes no statement — a behaviour-preserving
+refactor, a seam fix, a change to unowned code — still gets a plan in
+`docs/changes/active/` when it is worth running as tasks, but no capability
+names it and no pin moves. Its header says `capability: none`. When every
+task is ticked, `node specs/registry.mjs archive <plan>` moves it to
+`completed/`.
+
 ## Where other knowledge lives
 
 The spec layer is one kind of knowledge. A host repo may grow more; none of
@@ -212,7 +283,7 @@ it belongs in `specs/`.
 
 | kind | where | tense |
 |---|---|---|
-| vocabulary | `CONTEXT.md`, `docs/TERMINOLOGY.md` | present |
+| vocabulary | `CONTEXT.md` (or `GLOSSARY.md`), `docs/TERMINOLOGY.md` | present |
 | rationale | `docs/adr/` | past |
 | feature intent | `docs/product-specs/` | desired |
 | outstanding work | `docs/changes/active/` | during |

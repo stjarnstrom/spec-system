@@ -4,8 +4,8 @@ description: >
   Review a diff against the spec layer in specs/ — does the change contradict a
   pinned spec statement, or change owned behaviour with no amendment? Use when
   the user asks to spec-review a branch, PR, commit range, or working-tree
-  changes, or invokes /spec-review. Reviews against specs only; for general
-  code quality use /review or /code-review.
+  changes, or invokes /spec-review. Reviews against specs only; the review
+  skill runs this beside a standards review.
 ---
 
 Review the given diff against the spec layer. The registry is the substrate:
@@ -61,7 +61,8 @@ or nothing (default: working tree + staged vs HEAD; if clean, `HEAD~1..HEAD`).
 6. **Report.** Per capability: pin state, then findings as
    `<VERDICT> <statement-id> — one sentence + file:line`. End with a one-line
    overall: `clean`, `needs amendment`, or `contradicts pinned spec`. No
-   general code-quality commentary — /code-review exists.
+   general code-quality commentary — that is the standards axis of
+   spec-system:review.
 
 ## Rules
 

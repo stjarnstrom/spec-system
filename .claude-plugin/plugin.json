@@ -1,8 +1,19 @@
 {
   "name": "spec-system",
-  "description": "Spec-as-truth development: specs in specs/ are the source of truth, code is the artifact. Pins are content hashes — git holds spec history, no version numbers. Six skills: spec-init scaffolds the substrate + hook into any repo; spec-boundaries proposes capabilities from co-change evidence; spec-adopt describes existing code; spec-review checks diffs against pinned specs; spec-amend edits a spec and derives the plan from the delta; spec-implement builds test-first and moves the pin last.",
-  "version": "0.11.0",
+  "description": "Spec-as-truth development and the whole engineering loop around it. Specs in specs/ are the source of truth, pinned to the code by content hash. spec-shape interviews before building; spec-amend derives a plan from the spec delta; spec-run executes plans unattended with an implementer and a reviewer subagent per task, parks behaviour questions instead of guessing, and moves the pin last. Disciplines: tdd, debug, review, architecture, fan-out, merge-conflicts, finish.",
+  "version": "1.0.0",
   "author": {
     "name": "Robert Stjärnstrom"
-  }
+  },
+  "repository": "https://github.com/stjarnstrom/spec-system",
+  "license": "MIT",
+  "keywords": [
+    "specs",
+    "spec-driven",
+    "tdd",
+    "subagents",
+    "autonomous",
+    "code-review",
+    "debugging"
+  ]
 }

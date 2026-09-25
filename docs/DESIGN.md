@@ -20,9 +20,11 @@ live links. This repo IS the plugin: `.claude-plugin/plugin.json` at the root, s
    `specs/registry.yaml` through `registry.mjs`, never by re-deriving boundaries
    from the code. `check` is the precondition and postcondition of every skill
    that writes anything under `specs/`.
-3. **Two skills need a human answer mid-flight and must stop for it** (amend on
-   uncertainties, propose-boundaries on cluster naming). The others run to
-   completion.
+3. **Human answers are gathered before work, never guessed during it.**
+   Three skills stop for the human by design: spec-shape (the interview),
+   spec-amend (open uncertainties), spec-boundaries (naming). spec-run
+   asks everything else up front. Once a run starts, a question about
+   behaviour parks one task; it never stops the run and is never guessed.
 
 ## The verbs
 
@@ -216,3 +218,94 @@ copy. End-to-end proven in a bare scratch repo with no node_modules.
 
 Still not built: CI wiring for verify layers 1–2, and a substrate-upgrade path
 beyond manual copy + TOOL_VERSION comparison.
+
+## The workflow layer (1.0)
+
+0.11 left grilling, test-first work, diagnosis, review, and subagent
+execution to neighbouring plugins, and every handoff lost the statement
+IDs. 1.0 owns the loop — spec-shape, spec-run, and the disciplines (tdd,
+debug, review, architecture, fan-out, merge-conflicts, finish) — adapted
+from obra/superpowers and mattpocock/skills and rebuilt on the spec
+layer's objects. [COMPOSITION.md](COMPOSITION.md) maps each piece to its
+source and records how their disagreements were settled.
+
+The same ground rules apply:
+
+- **Mechanical core, judgement around it.** `scripts/run.mjs` does what a
+  model should not re-derive: extracting a task and its statements
+  verbatim into a brief, packaging a diff for review, ticking a task only
+  when its test command exits 0, appending to the run log, reporting where
+  a plan stands after a compaction. It lives in the plugin, not the
+  substrate: host CI never needs it, and only a run uses it.
+- **The plan is the ledger.** Superpowers keeps a separate ledger in a
+  workspace it deletes at the end, so its rulings survive only in a chat
+  message. Here the ledger is the plan's `## Run log`, the plan is
+  committed as the run goes, and `pin` or `archive` moves it to
+  `completed/` with every ruling intact.
+- **Rules enforced by structure where possible.** The reviewer agent has
+  no edit tools; neither agent has the Agent tool, so neither can fan out;
+  `done` refuses to tick on red; `archive` refuses unticked plans; the
+  brief tells an implementer when its task cites an open uncertainty.
+  Prompt text carries only what structure cannot.
+- **The ruling/park line is observable behaviour.** It is the same line
+  the truth layer already draws between a statement and an implementation
+  detail, so the run needs no new judgement to apply it: anything that
+  would change what a statement says, add behaviour no statement covers,
+  or take a side on an open `-U-` is the spec's, and parks.
+- **Front-load the human.** Superpowers gates up to five approvals before
+  a run and then stops for nothing. spec-shape's interview and spec-run's
+  readiness step collect every question the run could raise, so the run
+  itself can go for hours. The report is ordered by what the returning
+  human needs first: Blocked on me, Changed, Found, Rulings.
+
+### Evidence: the first unattended runs
+
+Two headless `spec-run` sessions (`claude -p`, no human) on a small
+fixture repo — slugify adopted and pinned, then amended with two
+statements — the same repo `evals/_fixtures/slug-repo.sh` builds.
+
+- **Run 1 found a spec bug instead of guessing past it.** Its fixture
+  paired `SLUG-003` ("strip everything outside a–z, 0–9, hyphen") with an
+  open `SLUG-U-001` ("is `é` transliterated or removed?"). The task citing
+  the uncertainty parked in pre-flight as designed. The reviewer then flagged
+  that T1 resolved SLUG-U-001, because `slugify('café')` returned `'caf'`: the
+  statement settled the open question by accident. The controller parked
+  T1 rather than ruling it away. The report led with a one-line question
+  and named the contradiction. Cost $1.25, 3 minutes. Two lessons were
+  folded back in. spec-amend now reads each new statement against every open
+  `-U-`, both ways. spec-implement's pre-flight now says a ruling that
+  amounts to "do it as written until answered" is a ruling on behaviour.
+- **Run 2 completed.** With a consistent spec: three tasks, three
+  implementer and three reviewer dispatches, one fix round (the reviewer
+  caught that T1's test depended on T2's hyphen trimming), a final
+  review, the pin moved, and the plan archived to `completed/` with its run
+  log. The run went from 2/4 to 4/4 verified with the suite green. Cost
+  $2.19, 4 minutes.
+  The report's rulings included skipping a per-task review for a docs-only
+  task, logged with its cost.
+- **Run 3 parked and delivered the rest**, on the eval fixture's `parked`
+  variant, after a fresh-context review of the whole change had been
+  applied. T3, which cites an open `-U-`, parked in pre-flight. T1 and T2
+  landed green with evidence. The pin stayed, and the report ended with the
+  one question — where to truncate long slugs. It also found that SLUG-002's
+  wording reads false once trimming lands. Cost $0.88, 2 minutes. It chose
+  the inline path, which the skill then allowed for two small tasks.
+  Subagents are now the default from two tasks up.
+- The first runs hit a substrate limit: `check` split `verified-by` on
+  every comma, so a test name could not contain one. Fixed: entries now
+  split on newlines, and on a comma only when a path or `UNVERIFIED`
+  follows. One implementer also ran `git checkout <file>` to get
+  unstuck, so the implementer contract now rules out discarding work.
+
+`evals/` encodes these scenarios for `claude plugin eval`. The routing case
+(`shape-before-build`) scores 3/3 with the plugin and 0/3 without it. The
+Bash-granting cases need a machine whose eval sandbox allows Bash.
+
+### What was left out on purpose
+
+Issue-tracker pipelines (the backlog is the file/pin mismatch), skill
+authoring and evals (meta-work — use `claude plugin eval`), the visual
+brainstorming server, and persuasion-style enforcement — ALL-CAPS
+directives, "delete means delete". Current models follow calm, specific
+instructions; where a rule matters, structure enforces it.
+
