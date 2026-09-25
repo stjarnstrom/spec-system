@@ -15,6 +15,11 @@
 //                                   Moves the named plan to
 //                                   docs/changes/completed/ and drops plan:
 //
+//   node specs/registry.mjs archive <plan>   move a standalone plan (one no
+//                                   capability names — no pin moves) from
+//                                   docs/changes/active/ to completed/ once
+//                                   every task is ticked
+//
 //   node specs/registry.mjs render  run check, then write specs/registry.html —
 //                                   a self-contained browsable rendering of the
 //                                   registry, every spec, and every plan
@@ -34,7 +39,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 
-export const TOOL_VERSION = '0.7.0';
+export const TOOL_VERSION = '0.8.0';
 
 // Identical to `git hash-object <file>` — pins survive with or without git.
 function blobHash(abs) {
@@ -70,6 +75,16 @@ function findSpecs() {
   if (fs.existsSync(path.join(own, 'registry.yaml'))) return own;
   console.error('✗ no specs/registry.yaml found above the working directory');
   process.exit(2);
+}
+
+// Evidence entries are separated by newlines, or by a comma followed by
+// something shaped like a file path (or UNVERIFIED). A comma inside a
+// `#test name` — "rounds 1.5, 2.5 and 3" — stays part of the name.
+function splitEvidence(text) {
+  return text.split('\n')
+    .flatMap((line) => line.split(/,\s*(?=[^\s,#]*\.[A-Za-z]\w*(?:#|\s*(?:,|$))|UNVERIFIED\b)/))
+    .map((e) => e.trim())
+    .filter(Boolean);
 }
 
 // ── YAML loading ──────────────────────────────────────────────────────────────
@@ -305,9 +320,8 @@ function parseSpec(cap, c) {
 
     // Every verified-by entry that is not UNVERIFIED must point at a real file.
     for (const vb of block.matchAll(/verified-by:\s*([\s\S]*?)(?=\n\n|\n###|\n##|$)/g)) {
-      for (let e of vb[1].split(',')) {
-        e = e.trim();
-        if (!e || e === 'UNVERIFIED') continue;
+      for (const e of splitEvidence(vb[1])) {
+        if (e === 'UNVERIFIED') continue;
         const file = e.split('#')[0].trim();
         if (!fs.existsSync(path.join(ROOT, file)))
           err(`${cap}: ${id} verified-by points at missing file: ${file}`);
@@ -365,6 +379,40 @@ if (process.argv[2] === 'pin') {
   console.log(`✓ ${cap}: pinned at ${shortPin(h)} (was ${shortPin(c.pinned)})`
     + (moved ? ` — plan moved to ${moved}` : '')
     + ' — run check before committing');
+  process.exit(0);
+}
+
+// ── archive: close a plan that moves no pin ──────────────────────────────────
+// Standalone plans — behaviour-preserving refactors, seam fixes, work on
+// unowned code — change no spec, so no capability names them and `pin` never
+// runs for them. `archive` is their last act: every task ticked, then the
+// file moves from docs/changes/active/ to docs/changes/completed/.
+
+if (process.argv[2] === 'archive') {
+  const arg = process.argv[3];
+  if (!arg) { console.error('✗ archive: name the plan (docs/changes/active/<file>.md)'); process.exit(2); }
+  const fromCwd = path.resolve(process.cwd(), arg);
+  const abs = fs.existsSync(fromCwd) ? fromCwd : path.resolve(ROOT, arg);
+  const rel = path.relative(ROOT, abs).replaceAll('\\', '/');
+  if (classifyPlan(rel) !== 'active' || !fs.existsSync(abs)) {
+    console.error(`✗ archive: ${rel} is not a plan in docs/changes/active/`); process.exit(2);
+  }
+  const owner = Object.entries(caps).find(([, c]) => c.plan && path.resolve(ROOT, c.plan) === abs);
+  if (owner) {
+    console.error(`✗ archive: ${rel} is ${owner[0]}'s outstanding plan — pin moves it: node specs/registry.mjs pin ${owner[0]}`);
+    process.exit(2);
+  }
+  const open = [...fs.readFileSync(abs, 'utf8').matchAll(/^\s*(?:[-*]|\d+\.) \[([ ~!])\].*$/gm)].map((m) => m[0].trim());
+  if (open.length) {
+    console.error(`✗ archive: ${open.length} task(s) not done — a partial plan stays in active/:\n  ${open.join('\n  ')}`);
+    process.exit(1);
+  }
+  const destDir = path.join(ROOT, 'docs', 'changes', 'completed');
+  fs.mkdirSync(destDir, { recursive: true });
+  const dest = path.join(destDir, path.basename(abs));
+  if (fs.existsSync(dest)) { console.error(`✗ archive: ${path.relative(ROOT, dest)} already exists`); process.exit(2); }
+  fs.renameSync(abs, dest);
+  console.log(`✓ ${rel} → ${path.relative(ROOT, dest).replaceAll('\\', '/')}`);
   process.exit(0);
 }
 

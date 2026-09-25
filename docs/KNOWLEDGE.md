@@ -52,7 +52,13 @@ docs/changes/completed/   implemented plans
 docs/product-specs/       feature intent, if you write those
 docs/references/          vendor/tool dumps for agents
 specs/                    capability truth + registry + FORMAT
+.spec-run/                a run's scratch; ignores itself, removed when the run ends
 ```
+
+`.spec-run/` is not knowledge. It holds a run's briefs, implementer
+reports, and diff packages so subagents can pass them as paths. What a run
+decided is written into the plan's run log, which survives in
+`docs/changes/completed/`; the scratch goes.
 
 `docs/product-specs/` is desired-tense ("onboarding should…"). A capability
 spec is present-tense implementation detail ("an unparseable step file is
@@ -64,7 +70,9 @@ split `specs/` into more folders.
 The plan half is enforced. `check` requires an outstanding `plan:` to exist
 and to live under `docs/changes/active/` (legacy flat `docs/changes/*.md`
 still passes). An in-sync capability must not still name a plan in `active/`.
-`pin` moves the file and drops `plan:`.
+`pin` moves the file and drops `plan:`. A standalone plan — one no
+capability names, because it changes no spec — moves with `archive`, which
+refuses while any task is unticked.
 
 ADRs are gated only once the registry points at one. `adr:` on a capability,
 edge, or seam must resolve to a file that exists, the same treatment `plan:`

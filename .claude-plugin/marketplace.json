@@ -8,7 +8,7 @@
     {
       "name": "spec-system",
       "source": "./",
-      "description": "Spec-as-truth development: specs are the source of truth, code is the artifact. Scaffold the substrate, review diffs against pinned specs, amend specs, implement against delta-derived plans."
+      "description": "Spec-as-truth development with a full engineering workflow: interview-first shaping, delta-derived plans, unattended subagent-driven runs with per-task review, TDD, debugging, review, architecture, and branch finishing."
     }
   ]
 }

@@ -1,12 +1,17 @@
 # spec-system
 
-A Claude Code plugin for **spec-as-truth development**: the spec is the source
-of truth, the code is the artifact. Changes go spec-first — amend the spec,
-derive a plan from the spec *delta*, implement against the plan, then move the
-pin that records which spec content the code satisfies. Specs carry no version
-numbers: git holds their history, and the pin is a content hash of the spec
-file — equal to the file means in sync, different means an amendment awaits
-implementation, `none` means the code doesn't exist yet.
+A Claude Code plugin for **spec-as-truth development**, and the whole
+engineering loop around it. The spec is the source of truth and the code is
+the artifact. Changes go spec-first: shape the change with the user,
+amend the spec, derive a plan from the spec *delta*, and run the plan —
+unattended if you like — with a fresh implementer and a reviewer per task.
+The last act is moving the pin that records which spec content the code
+satisfies.
+
+Specs carry no version numbers. Git holds their history, and the pin is a
+content hash of the spec file: equal to the file means in sync, different
+means an amendment awaits implementation, `none` means the code does not
+exist yet.
 
 ## Install
 
@@ -15,68 +20,140 @@ implementation, `none` means the code doesn't exist yet.
 /plugin install spec-system@stjarnstrom
 ```
 
-## The shape of the system
+Then, in a repo: `/spec-system:spec-init`. [docs/ONBOARDING.md](docs/ONBOARDING.md)
+is the first hour; [docs/WORKFLOW.md](docs/WORKFLOW.md) is the full loop,
+including how to walk away from a run.
 
-A repo that adopts this carries a `specs/` directory:
+## The loop
 
-- `specs/FORMAT.md` — the schema: statement kinds (requirements `PREFIX-NNN`,
-  invariants `PREFIX-I-NNN`, uncertainties `PREFIX-U-NNN`), ID stability rules,
-  `verified-by` (test evidence) and `checked-by` (falsifying shell commands),
-  and what a spec must never contain (history, rationale).
+```
+idea ─► spec-shape ─► spec-amend ─► spec-run ─────────────────────► report
+        interview,     statements    worktree · per task:            Blocked on me
+        one question   + delta plan    implementer ─► reviewer        Changed
+        at a time                       (tdd)          (spec + quality) Found
+                                      final review · pin · finish      Rulings
+
+bug ─► debug ─► fix under the pin, or amend if the statement was wrong
+structure hurts ─► architecture ─► standalone plan ─► spec-run
+```
+
+Everything that needs you happens before the run: the interview, the plan,
+and spec-run's readiness questions. The run then decides *how* — logging
+each ruling in the plan — and parks any question about *what* the software
+does instead of guessing it. You come back to a report that leads with
+what needs you.
+
+## Skills
+
+**Truth layer** — the spec, the registry, and the pin
+
+| skill | verb |
+|---|---|
+| `spec-init` | scaffold `specs/`, the pre-commit hook, and the agent-instructions section; propose capability boundaries from git co-change history; stop for the human |
+| `spec-boundaries` | propose new capabilities, seams, and boundary corrections from co-change evidence; never draws the lines itself |
+| `spec-adopt` | describe one existing capability as it is — statements, evidence from existing tests, anomalies recorded, nothing fixed — and pin it |
+| `spec-amend` | edit a spec and derive the plan from the delta; hard-stops on open uncertainties |
+| `spec-review` | review a diff against the pinned specs: CONSISTENT / CONTRADICTS / DRIFT / RESOLVES, by statement ID |
+
+**Workflow** — from idea to merged
+
+| skill | verb |
+|---|---|
+| `spec-shape` | interview before building, one question at a time; approved statements go to spec-amend |
+| `spec-implement` | execute a plan: implementer subagent per task, reviewer after each, five-round fix loop, final review, pin last |
+| `spec-run` | settle every question up front, then run plans unattended in a worktree to done and report |
+| `finish` | verify, then merge locally, open a PR, or keep the branch; clean up safely |
+
+**Disciplines** — used inside the loop and on their own
+
+| skill | verb |
+|---|---|
+| `tdd` | one failing test per behaviour, watched red, least code to green; the test becomes the statement's `verified-by` |
+| `debug` | a red feedback loop before any theory; minimise, rank hypotheses, instrument, fix with a regression test |
+| `review` | two axes that are never merged — spec (statement IDs) and standards — and how to receive a review |
+| `architecture` | survey hot spots for shallow modules, design the interface twice, land the deepening as a plan |
+| `fan-out` | split independent units across parallel subagents, verify each one's evidence, consolidate |
+| `merge-conflicts` | resolve by each side's intent, with the spec layer's rules for IDs and pins |
+
+**Agents.** `implementer` (writes code test-first from a brief; cannot spawn
+subagents) and `reviewer` (read-only; judges a diff against the statements
+it names and for quality). Both inherit the session's model.
+
+**Hook.** At session start and after every compaction: a short skill map,
+the spec rules in repos that have `specs/`, and a resume pointer while a
+run is in progress.
+
+## The substrate
+
+A repo that adopts the system carries a `specs/` directory:
+
+- `specs/FORMAT.md` — the schema: statement kinds (requirements
+  `PREFIX-NNN`, invariants `PREFIX-I-NNN`, uncertainties `PREFIX-U-NNN`),
+  ID stability rules, `verified-by` and `checked-by`, the plan shape, and
+  what a spec must never contain (history, rationale).
 - `specs/registry.yaml` — machine truth: capabilities, owned paths (whole
   files, `path#symbol`, or `dir/**`), the content-hash pin, status,
-  dependency edges, seams, and `adr:` pointers to the decision records behind
-  them. Specs hold no rationale, so the registry is where the spec layer and
-  `docs/adr/` meet; `check` requires every referenced ADR file to exist.
+  dependency edges, seams, and `adr:` pointers to decision records.
 - `specs/REGISTRY.md` — the generated human rendering.
-- `specs/registry.mjs` — the tool (vendored, zero-dependency; js-yaml used if
-  the host repo has it):
+- `specs/registry.mjs` — the tool, vendored and zero-dependency:
   - `check` — validates everything and runs every invariant's `checked-by`
   - `sync` — regenerates the REGISTRY.md tables
   - `owns <files>` — maps a diff to owning capabilities, seams, or unowned
   - `pin <capability>` — records the spec file's content hash as what the
-    code satisfies; the last act of implementing. Also moves the named plan
-    from `docs/changes/active/` to `docs/changes/completed/` and drops `plan:`
-  - `render` — writes `specs/registry.html`, a self-contained browsable
-    rendering of the registry, every spec, and every plan in
-    `docs/changes/active/` and `docs/changes/completed/`.
-    Statement IDs are anchors, so plans link to the statements they cite;
-    pin states show as badges. Checkbox tasks in a plan (`- [ ]` / `- [x]` /
-    `- [~]` in progress / `- [!]` blocked) become a progress bar that
-    advances as spec-implement ticks them. A view for humans — the markdown stays the
-    truth, and agents never read the HTML. Commit it or gitignore it as you
-    prefer; output is deterministic, so regeneration is diff-quiet
+    code satisfies, moves the plan from `docs/changes/active/` to
+    `completed/`, and drops `plan:`; the last act of implementing
+  - `archive <plan>` — closes a standalone plan (one that changes no spec)
+    once every task is ticked
+  - `render` — writes `specs/registry.html`, a browsable view of the
+    registry, every spec, and every plan with its progress bar
 
-The layer is ambient, not opt-in: `spec-init` also installs a git pre-commit
-hook (blocks commits that stage `specs/` while `check` fails; warns when
-staged code is spec-owned with no spec delta) and a section in the host
-repo's agent instruction file so any agent session knows the rules. That
-section includes a knowledge-layout map (vocabulary, ADRs, product briefs,
-plans). `spec-init` does not create those folders — see
-[docs/KNOWLEDGE.md](docs/KNOWLEDGE.md).
+The layer is ambient: `spec-init` installs a pre-commit hook (blocks
+commits that stage `specs/` while `check` fails; warns when staged code is
+spec-owned with no spec delta) and a section in the repo's agent
+instructions, including its verification commands.
 
-## Skills
-
-| skill | verb |
-|---|---|
-| `spec-init` | scaffold `specs/` + hook + agent instructions; propose boundaries from git co-change history; stop for the human. Greenfield repos skip co-change and write first specs as targets (`pinned: none` + plan) |
-| `spec-boundaries` | propose new capabilities, seams, and boundary corrections from co-change evidence and an ownership sweep; never draws the lines itself |
-| `spec-adopt` | describe one existing capability as it is: statements, evidence from existing tests, anomalies recorded, nothing fixed, pinned as written |
-| `spec-review` | review a diff against the pinned specs: CONSISTENT / CONTRADICTS / DRIFT / RESOLVES, by statement ID |
-| `spec-amend` | edit a pinned spec and derive the migration plan from the delta; hard-stops on open uncertainties |
-| `spec-implement` | build against the plan test-first (a delta statement is a genuine falsifier), done = evidence exists per statement, pin move as the last act |
-
-New here? Start with [docs/ONBOARDING.md](docs/ONBOARDING.md).
-How grilling, test-first work, diagnosis, and the other neighbouring
-skills land on this layer: [docs/COMPOSITION.md](docs/COMPOSITION.md).
+The plugin's own `scripts/run.mjs` is the run tooling: task briefs with
+statements resolved verbatim, review packages, test-gated completion, and
+the plan's run log. [docs/KNOWLEDGE.md](docs/KNOWLEDGE.md) covers where
+other knowledge (vocabulary, ADRs, product briefs) lives.
 
 ## Where the rules come from
 
-Every rule in these skills was earned by a mistake during hand runs across
-three repos (a pnpm monorepo, a flat Vite prototype, a Rust+Python+TS
-polyglot): adoption never smuggles fixes; amendments split requirements rather
-than rewrite them (evidence detaches silently); seam defects get no
-requirement; anomaly→statement conversion is well under 1:1; amend must stop
-on open uncertainties; invariants are grep-verified before they are kept.
-[docs/DESIGN.md](docs/DESIGN.md) is the full design with the evidence trail;
-[docs/ORIGIN.md](docs/ORIGIN.md) is the handoff that started it.
+The truth layer's rules were earned by mistakes during hand runs across
+three repos: adoption never smuggles fixes; amendments split requirements
+rather than widen them; seam defects get no requirement; anomaly →
+statement conversion runs well under 1:1; amend stops on open
+uncertainties; invariants are proven against the tree before they are
+kept. [docs/DESIGN.md](docs/DESIGN.md) is the design with its evidence
+trail; [docs/ORIGIN.md](docs/ORIGIN.md) is the handoff that started it.
+
+The workflow layer adapts the subagent-driven loop and disciplines of
+[obra/superpowers](https://github.com/obra/superpowers) and
+[mattpocock/skills](https://github.com/mattpocock/skills), rebuilt around
+statement IDs and pins. [docs/COMPOSITION.md](docs/COMPOSITION.md) says what
+came from where and what was decided where they disagree;
+[docs/CREDITS.md](docs/CREDITS.md) carries their licences.
+
+## Development
+
+```
+sh substrate/test-plan-lifecycle.sh   # registry.mjs: plans, pin, archive
+sh scripts/test-run.sh                # run.mjs: briefs, packages, the ledger
+claude plugin validate .claude-plugin/plugin.json
+```
+
+Behaviour is tested with `claude plugin eval` against a no-plugin baseline.
+The suite in [evals/](evals) holds a cheap routing case and three cases
+that build a fixture repo (`evals/_fixtures/slug-repo.sh`) and grant Bash:
+debugging from a red loop, a full unattended run that pins, and a run
+that parks an open question.
+
+```
+claude plugin eval . --tag cheap
+claude plugin eval . --tag bash --scaffold --allow-tools Bash Edit Write --runs 1
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE). The adapted work from obra/superpowers and
+mattpocock/skills keeps its own MIT notices in [docs/CREDITS.md](docs/CREDITS.md).

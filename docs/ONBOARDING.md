@@ -40,6 +40,11 @@ In Claude Code:
 5. `node specs/registry.mjs check` validates all of it and runs every
    invariant's tripwire; a pre-commit hook runs it for you.
 
+And one about the workflow on top: **you decide what the software does,
+before the run; the run decides how to build it, and logs each decision.**
+A question about behaviour that comes up mid-run parks its task instead of
+being guessed, and heads the report you come back to.
+
 ## Your first hour (in a repo that already has specs/)
 
 1. Read `specs/REGISTRY.md` — the map. Then one spec file end to end,
@@ -51,6 +56,17 @@ In Claude Code:
    tell you which spec to check.
 4. Then work normally. The AGENTS.md section in the repo tells agent
    sessions the same rules you just learned.
+
+## Your first feature
+
+1. Describe it — or run `/spec-system:spec-shape`. You'll be interviewed
+   one question at a time, each with a recommended answer, then approve
+   the design section by section.
+2. spec-amend writes the spec delta and a plan. Skim the tasks.
+3. `/spec-system:spec-run`, answer its readiness questions, and walk away.
+4. Come back to the report: **Blocked on me** first, then Changed, Found,
+   and the Rulings the run made. [WORKFLOW.md](WORKFLOW.md) has the whole
+   loop.
 
 ## Your first hour (bringing it to a new repo)
 
@@ -79,6 +95,13 @@ write your first spec as a *target* (`pinned: none`) that
   code again won't answer them; a human must.
 - **IDs are permanent.** Never renumbered, never reused, withdrawn ones keep
   their heading.
+- **A run never guesses behaviour.** It rules on how to build, and logs
+  each ruling in the plan; a question about what the code does parks the
+  task. A run that parked half its tasks did its job — the questions it
+  brought back are the ones only you could answer.
+- **A task is ticked only after review passes and `run.mjs done` sees
+  green** — every statement it names satisfied with evidence, and the
+  test run's own output, not a report of it.
 
 ## Where your feedback is most valuable
 
@@ -94,6 +117,10 @@ loop. Watch for — and report — these:
 - Anywhere the format fought you: frontmatter quirks, checked-by commands
   that are brittle, `owns` misattributing files (known gap: test
   attribution is TypeScript-only).
+- A run that guessed behaviour instead of parking it, or parked something
+  that was plainly an implementation choice.
+- A ruling you would have decided differently — the run log keeps them
+  all, so point at the line.
 - Any moment you bypassed the system to get work done — that's the most
   important one.
 
@@ -107,8 +134,8 @@ by amendment.
 recommended, not scaffolded — write the first file when you have something
 to put there. The host `AGENTS.md` section is the map; `specs/FORMAT.md`
 is the schema it points at. The why is in [KNOWLEDGE.md](KNOWLEDGE.md).
-Which outside skills to run beside this layer, and which verbs would
-collide with it, is in [COMPOSITION.md](COMPOSITION.md).
+Where the workflow skills came from, and which words collide if you still
+run superpowers or mattpocock/skills, is in [COMPOSITION.md](COMPOSITION.md).
 
 ```
 AGENTS.md                 map (spec section + knowledge layout)
@@ -119,13 +146,16 @@ docs/changes/completed/   implemented plans
 docs/product-specs/       feature intent, if you write those
 docs/references/          vendor/tool dumps for agents
 specs/                    capability truth + registry + FORMAT
+.spec-run/                a run's scratch (briefs, reports, diffs); ignores itself
 ```
 
 ## Reference
 
 - [../README.md](../README.md) — install, tool commands, skills table
+- [WORKFLOW.md](WORKFLOW.md) — the loop, walking away from a run, coming back
 - `specs/FORMAT.md` (in any adopted repo) — the schema, canonical
 - [KNOWLEDGE.md](KNOWLEDGE.md) — how the host knowledge layout is recommended
-- [COMPOSITION.md](COMPOSITION.md) — skills that sit beside the spec layer
+- [COMPOSITION.md](COMPOSITION.md) — where the workflow skills came from
+- [CREDITS.md](CREDITS.md) — licences of the adapted projects
 - [DESIGN.md](DESIGN.md) — full design with the evidence trail
 - [ORIGIN.md](ORIGIN.md) — the handoff that started it

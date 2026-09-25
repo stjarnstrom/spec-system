@@ -1,0 +1,6 @@
+schema_version: "1.1"
+name: debug-loop-first
+description: A failing-test report routes to debug, which runs the failing command before editing code.
+tags: [debug, bash]
+context:
+  scaffold_script: scaffold.sh

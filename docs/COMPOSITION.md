@@ -1,129 +1,124 @@
-# What sits next to the spec layer
+# Where the workflow layer came from
 
-The spec plugin is a truth layer: present-tense capability statements,
-content-hash pins, and a plan that is only the delta from the pinned file
-to the amended one. Grilling, test-first development, diagnosis, and
-architecture surveys stay in the skills a host already runs. Copying those
-verbs in here would give the host two specs, two plans, and two seams.
+Up to 0.11 this plugin was only a truth layer: specs, pins, and the verbs
+that move them. Grilling, test-first work, diagnosis, review, and
+subagent-driven execution were left to whatever a host already ran —
+usually [obra/superpowers](https://github.com/obra/superpowers) or
+[mattpocock/skills](https://github.com/mattpocock/skills). That left the
+host with two specs, two plans, and two ideas of a seam, and every
+handoff between the plugins lost the statement IDs.
 
-[ORIGIN.md](ORIGIN.md) already refuses to absorb domain-modeling. The same
-cut applies to the rest of
-[mattpocock/skills](https://github.com/mattpocock/skills) and
-[obra/superpowers](https://github.com/obra/superpowers). Those repos own a
-process: idea, interview, tickets, code. This repo owns the pin.
+1.0 owns the whole loop. Every discipline now lands on the spec layer's
+objects: a test is the evidence for a statement, a review finding cites a
+statement ID, a ruling lives in the plan that the pin archives, and a
+plan task names the statements it makes true. Both source repos are MIT;
+[CREDITS.md](CREDITS.md) carries their notices.
 
-Host repos do not get a copy of this file. The injected
-[AGENTS.section.md](../substrate/AGENTS.section.md) carries the short rule
-an agent session needs. This file is the why, for people reading the plugin.
-Same cut as [KNOWLEDGE.md](KNOWLEDGE.md).
+This file is the why, for people reading the plugin. Host repos get the
+short rules through the injected
+[AGENTS.section.md](../substrate/AGENTS.section.md) and the session hook.
 
-Grilling and test-first development are the neighbours already assumed.
-`grill-with-docs` stays upstream: it writes `CONTEXT.md` and ADRs, which
-spec-amend already knows how to point at from `registry.yaml`.
-`spec-implement` already runs each task through a host TDD skill when the
-repo has one, and already allows independent plan tasks to run as parallel
-subagents confined by `owns`.
+## What each skill took, and what changed on the way in
 
-## Words that collide
+| skill | from superpowers | from mattpocock/skills | what the spec layer changed |
+|---|---|---|---|
+| `spec-shape` | brainstorming: purpose first, path classification (in doubt, go heavier; the ratchet only goes up), one question per message, 2–3 approaches, approval per section | grilling: facts from the code, decisions from the user; glossary challenged and updated inline; three-gate ADRs | The output is approved *statements*, not a dated design doc. They go to spec-amend, which allocates IDs and derives the plan. |
+| `spec-amend` (plan) | writing-plans: review focus, decisions-not-transcript, a task sized to one reviewer's gate | to-tickets: tracer bullets, prefactoring first, expand–contract, criteria red at the base commit | Tasks name statement IDs; the plan is derived from the spec delta, and its run log is the ledger. |
+| `spec-implement` | subagent-driven-development: fresh implementer per task, four statuses, five-part dispatch, one reviewer with a spec and a quality verdict, 5-round fix loop with scoped re-review, adjudicate only at the cap, the pre-judging tripwire, one final fix wave, rulings | implement-spec: context pointers, not pasted content; parallel worktrees for disjoint tasks | Rulings decide *how* only; a behaviour question parks the task. A statement not yet satisfied, and `CONTRADICTS`, `DRIFT`, `RESOLVES`, are never ruled away. The pin moves last. |
+| `spec-run` | the autonomy window, the closed list of stops, bounded waits, SessionStart re-injection after compaction | AFK vs HITL typing (`[human]` tasks), human-only work kept out of the agent's path | Every question is asked before the run starts. The report leads with Blocked on me, and rulings survive in completed plans instead of dying with the workspace. |
+| `tdd` | iron-law ordering, verify red for the right reason, the whole suite not just the file, `writing-good-tests` (name the break, no mirror assertions, the mutation check) | vertical slices, tests only at agreed seams, mocks only at system boundaries | The test comes from a statement and becomes its `verified-by`. Adoption still never writes tests. |
+| `debug` | systematic-debugging's phases, boundary instrumentation, three failed fixes means the architecture is the question, the technique files | diagnosing-bugs: no theory before a red feedback loop, minimise, 3–5 ranked falsifiable hypotheses, tagged debug logs | Step 3 asks whether a pinned statement covers the behaviour: a code fix under the pin, or an amendment when the statement is wrong. |
+| `review` | receiving-code-review: verify before implementing, push back with evidence, no performative agreement | code-review: two axes in isolated subagents, never merged or re-ranked; repo standards over a smell baseline | The spec axis is spec-review: every finding cites a statement ID. `CONTRADICTS`/`DRIFT` are amend-or-revert decisions. |
+| `architecture` | — | improve-codebase-architecture and codebase-design: deep modules, the deletion test, dependency categories, design-it-twice, one candidate per session | A deepening lands as a standalone plan; a structural rule lands as an invariant with a `checked-by` proven to bite; a wrong capability boundary goes to spec-boundaries. |
+| `fan-out` | dispatching-parallel-agents; the diagnosing analysts' rule that a finding without `path:line` is discarded | — | Units follow capability lines; audit findings go to the anomaly list, not into fixes. |
+| `merge-conflicts` | — | resolving-merge-conflicts: primary sources, both intents, invent nothing | Statement IDs are never renumbered on the base side, a statement both sides changed is an amendment decision, and a pin is never kept just to make `check` pass. |
+| `finish` | finishing-a-development-branch: verify first, three options, capture paths before `cd`, provenance-based clean-up, never force | the PR body comes from the primary source, not the diff | Test the merge before committing it (`--no-commit`), so a red merge leaves the base branch untouched. The PR body lists the statements made true. |
+| agents | the implementer and task-reviewer prompts | the review agent enforces standards; the implementer does not | Real plugin agents with tool lists: the reviewer has no edit tools (Bash stays, for git and a focused test), and neither agent can spawn subagents. Superpowers enforces these with prompt text only. |
+| `scripts/run.mjs` | `task-brief`, `review-package`, `task-done`, the ledger grammar | — | The brief resolves statement IDs to their verbatim text and owned paths. The ledger is the plan file itself. |
 
-Four words in those repos name a different object than they name here. Use
-the local meaning inside `specs/`.
+## Where the sources disagreed, and what was decided
 
-- **Spec.** A capability spec is present-tense implementation truth with
-  stable IDs. Matt Pocock's `to-spec` publishes a desired-tense issue:
-  problem, user stories, implementation decisions. `docs/product-specs/` is
-  the home for that kind of brief. `to-spec`, `to-tickets`, and `implement`
-  are a separate pipeline. They do not front spec-amend.
-- **Plan.** A spec plan is a delta table in `docs/changes/active/`. A task
-  is done when the statements it names have evidence. Superpowers
-  `writing-plans` emits bite-sized tasks that include the code, written for
-  an implementer with no project context. `writing-plans` and
-  `executing-plans` fight the delta.
-- **Seam.** A registry seam is an unowned cross-cutting path in
-  `specs/registry.yaml`. `codebase-design` uses Michael Feathers' seam: a
-  place where behaviour can change without an edit at that place. Say
-  "registry seam" and "module seam" when both are in play, or ownership
-  gets filed against the wrong one.
-- **Backlog.** Here the backlog is the file/pin mismatch. `triage` is an
-  issue-tracker state machine. It can label a report. It does not record
-  whether the code satisfies a spec.
+The user settled four conflicts directly:
 
-## Use alongside
+1. **Ambiguity during an unattended run.** Superpowers rules on
+   everything and keeps going; spec-amend's rule was a hard stop on any
+   open `-U-`. Decision: rule on implementation, park behaviour. How the
+   code is built is the run's call, logged with its cost if wrong. What
+   the code observably does is the user's: the task parks, the run
+   continues with tasks that do not depend on it, and the question heads
+   the report.
+2. **Session-start injection.** Superpowers injects a forceful bootstrap
+   into every session; Matt's plugin injects nothing. Decision: a calm
+   skill map (about 350 tokens), the spec rules only in repos with
+   `specs/`, and a resume pointer when a run is in progress. It is
+   re-injected after compaction.
+3. **Subagent models.** Superpowers tiers models by role. Decision: every
+   subagent inherits the session model.
+4. **Interview style.** Superpowers asks one question per message; Matt
+   asks the whole frontier in rounds. Decision: one question per message,
+   multiple choice, recommendation first, design approved section by
+   section.
 
-These stay installed as their own skills. Each one lands on an object this
-system already has.
+These were resolved in the design, because the sources address different
+moments rather than truly conflicting:
 
-```mermaid
-flowchart TD
-  start[Change or failure]
-  start --> scale{Larger than one capability delta?}
-  scale -->|yes| wayfinder[wayfinder]
-  scale -->|no| grill[grill-with-docs]
-  wayfinder --> settled[Decision settled]
-  grill --> settled
-  settled --> open{What is still open?}
-  open -->|how it should feel| prototype[prototype]
-  open -->|fact outside the repo| research[research]
-  open -->|someone else must answer| questionnaire[to-questionnaire]
-  open -->|observable behaviour| amend[spec-amend]
-  prototype --> amend
-  research --> amend
-  questionnaire --> amend
-  amend --> implement[spec-implement plus host tdd]
-  fail[Failure against a pinned statement] --> diagnose[diagnosing-bugs]
-  diagnose --> which{Is the statement still true?}
-  which -->|code is wrong| fix[Fix under the pin]
-  which -->|spec was wrong| amend
-```
+- **One reviewer or two axes.** Superpowers merged spec and quality into
+  one per-task reviewer on cost evidence; Matt keeps two isolated axes.
+  Both hold: one reviewer per task (cheap, and task-scoped), two axes
+  for a branch or PR review.
+- **Sequential or parallel implementers.** Superpowers never runs two;
+  Matt's implement-spec runs a frontier in parallel worktrees.
+  Sequential is the default here. Parallel is allowed only for tasks the
+  plan marks `independent` whose owned paths are disjoint, each in its own
+  worktree and merged before its `done`. Note that an isolated worktree
+  branches from the default branch, so the implementer checks out the
+  base commit first.
+- **The refactor step.** Superpowers keeps red-green-refactor; Matt
+  dropped refactor from the loop because agents skipped it. Here, tidying
+  on green inside the task is allowed; restructuring is a review finding.
+- **Rulings dying with the workspace.** Superpowers deletes its ledger at
+  the end. Here the ledger is the plan's run log, and the plan moves to
+  `completed/`, so every ruling stays reviewable in git.
+- **Code in plans.** Superpowers' own v6.4.2 moved plans from transcripts
+  of the code to decisions. The spec layer already worked that way: a task
+  names statements, and the implementer reads them verbatim.
 
-- **`diagnosing-bugs`**, or Superpowers `systematic-debugging`. Pick one.
-  A red loop that shows a pinned statement is false is a code fix and a
-  `verified-by` update. It becomes spec-amend only when the statement
-  itself is the mistake. This repo grows no diagnosis skill.
-- **`code-review`, standards axis only.** spec-review already sends general
-  quality to `/code-review`. The other axis of that skill reads an issue,
-  or any file under `specs/`, and will treat a capability spec as a feature
-  brief. spec-review stays the only spec axis.
-- **`prototype` and `research`.** They answer questions reading the code
-  cannot. A prototype stays off the main branch; the verdict comes back as
-  a statement, or an ADR when the decision is hard to reverse, surprising,
-  and a real trade-off. Research writes a cited note, and that file belongs
-  in `docs/references/`.
-- **`codebase-design` and `improve-codebase-architecture`.** Use them when
-  a boundary feels like a layer, or to feed the anomaly list. A deepening
-  that does not change observable behaviour gets no statement — the same
-  rule as a registry-seam defect. Keep "registry seam" and "module seam"
-  apart.
-- **`wayfinder`.** For an effort that will not fit in one amendment. Each
-  resolved behaviour decision returns as one spec-amend. The map stays on
-  the issue tracker. It does not become a second registry.
-- **`resolving-merge-conflicts`.** Use the general skill, with three
-  constraints that belong to this layer: never reuse or renumber a
-  statement ID, never keep the other side's `pinned` hash, and a conflict
-  inside a statement is an amendment decision, not a hunk pick.
-- **`receiving-code-review`.** For quality comments. A `CONTRADICTS` or
-  `DRIFT` finding from spec-review is amend-or-revert.
-- **`verification-before-completion`.** The pin rule is already this
-  discipline. spec-implement carries the one sentence worth stealing: no
-  claim that a task or the pin is done without the command output from
-  this turn. The skill itself stays outside.
-- **`to-questionnaire`.** Only when the person in the session cannot close
-  an open `-U-` uncertainty. The answer comes back through spec-amend.
+## Left out, and why
 
-## Leave outside
+- **Issue-tracker pipelines** — to-spec, to-tickets, triage, wayfinder.
+  The backlog here is the file/pin mismatch, and plans live in the repo. A
+  tracker ticket can point at a plan; it does not replace one.
+- **writing-skills and skill evals.** They are meta-work on agent
+  instructions, not engineering on a host repo. Use `claude plugin eval`
+  and Anthropic's skill-creator.
+- **The visual brainstorming companion.** A local server for mock-ups;
+  spec-shape's prototypes cover the questions that need a picture.
+- **teach, wizard, handoff, wait-what, ask-matt.** The plan is the
+  handoff; the session hook is the router.
+- **Persuasion-style enforcement** — ALL-CAPS directives, "delete means
+  delete", bans on gratitude. Current models follow calm, specific
+  instructions better, and superpowers' own newer skills moved the same
+  way. Where a rule matters, it is enforced mechanically instead: the
+  reviewer has no edit tools, `done` ticks a task only on green, and
+  `archive` refuses unticked plans.
 
-- `brainstorming` — grilling again.
-- `domain-modeling` — already refused in [ORIGIN.md](ORIGIN.md). Vocabulary
-  stays in `CONTEXT.md`; this plugin does not maintain it.
-- `ask-matt`, `wizard`, `teach`, `wait-what`.
-- `handoff` — the active plan is the handoff.
-- `finishing-a-development-branch`, `using-git-worktrees`. The
-  regenerability check in a scratch worktree stays the deferred layer-4
-  eval in [DESIGN.md](DESIGN.md).
-- `subagent-driven-development` as a whole. Its per-task spec check is the
-  idea spec-implement already applies, in miniature, to the statements a
-  task names. Its "rulings, not stalls" rule tells the agent to decide
-  ambiguities and keep going, which contradicts spec-amend's hard stop on
-  an open `-U-`. Do not import the ruling ledger.
-- `to-spec`, `to-tickets`, `implement`, `writing-plans`, `executing-plans`,
-  `triage` — the colliding words above.
+## If superpowers or mattpocock/skills is still installed
+
+Both work beside this plugin, but they collide on four words. Inside
+`specs/`, use the local meaning.
+
+- **Spec.** Here: present-tense implementation truth with stable IDs.
+  Superpowers' dated design docs and Matt's `to-spec` issues are
+  desired-tense briefs; if you keep those, they belong in
+  `docs/product-specs/`.
+- **Plan.** Here: a delta-derived task list whose tasks name statements.
+  `writing-plans` and `to-tickets` produce a different object; do not
+  feed them to spec-implement.
+- **Seam.** A registry seam is an unowned path in `specs/registry.yaml`; a
+  module seam is Feathers' place where behaviour changes without an edit.
+  Say which.
+- **Backlog.** Here, the file/pin mismatch. A tracker's `ready-for-agent`
+  label does not say whether code satisfies a spec.
+
+Running two bootstraps doubles the always-on context and the two will
+compete to trigger. Pick one plugin per repo for the workflow.
