@@ -143,10 +143,10 @@ claude plugin validate .claude-plugin/plugin.json
 ```
 
 Behaviour is tested with `claude plugin eval` against a no-plugin baseline.
-The suite in [evals/](evals) holds a cheap routing case and three cases
-that build a fixture repo (`evals/_fixtures/slug-repo.sh`) and grant Bash:
-debugging from a red loop, a full unattended run that pins, and a run
-that parks an open question.
+The suite in [evals/](evals) holds a cheap routing case and four cases
+that build a fixture repo (`evals/_fixtures/`) and grant Bash: debugging
+from a red loop, a full unattended run that pins, a run that parks an open
+question, and a run whose independent tasks go to parallel worktrees.
 
 ```
 claude plugin eval . --tag cheap

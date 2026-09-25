@@ -11,7 +11,9 @@
 //   brief   <plan> <T>                  (re)write the task brief only
 //   package <plan|-> <base> [<head>]    write commits + stat + diff for review
 //   done    <plan> <T> <base> -- <cmd>  run the tests; only on exit 0 mark [x] and log
-//   park    <plan> <T> <question>       mark [!] and log the question
+//   park    <plan> <T> <question>       mark [!], log the question, and move any
+//                                       commits since the task's base to
+//                                       spec-run/parked/<plan>/<T>, reverted here
 //   unpark  <plan> <T> <answer>         mark [ ] again once its question is answered
 //   log     <plan> <line>               append one run-log line
 //   active  [set <plan>... | clear]     the in-progress marker the session hook reads
@@ -114,6 +116,41 @@ function appendLog(abs, entry) {
   lines.splice(at, 0, ...(at === start + 1 ? ['', `- ${one}`] : [`- ${one}`]));
   if (lines[lines.length - 1] !== '') lines.push('');
   fs.writeFileSync(abs, lines.join('\n'));
+}
+
+// ── parking mid-flight ───────────────────────────────────────────────────────
+// A task parked after it committed may have unreviewed work on the run
+// branch. Its own commits — subjects starting with its id, as the implementer
+// contract writes them — move to spec-run/parked/<plan>/<T> and are reverted
+// here, so every later `done` sees only reviewed, green work. A task that
+// worked on its own branch (a parallel worktree) has nothing on the line: its
+// branch is the parked work. Own commits interleaved with others' are named
+// for a revert by hand.
+
+function shelveWork(abs, id) {
+  const log = (section(fs.readFileSync(abs, 'utf8').split('\n'), 'Run log') ?? '').split('\n');
+  const at = log.findLastIndex((l) => l.startsWith(`- ${id}: started (base `));
+  if (at === -1) return null;
+  const base = log[at].match(/base ([0-9a-f]+)/)[1];
+  let range;
+  try { range = git(`log --format=%h%x09%s ${base}..HEAD`); } catch { return null; }
+  const commits = range.split('\n').filter(Boolean).map((l) => { const [sha, subject] = l.split('\t'); return { sha, subject }; });
+  const own = commits.filter((c) => new RegExp(`^${id}\\b`).test(c.subject));
+  if (!own.length) return null;
+  const touchesPlan = git(`diff --name-only ${base} HEAD`).split('\n').includes(rel(abs));
+  if (own.length !== commits.length || touchesPlan)
+    return `not reverted: ${id}'s commits are interleaved with other work — revert them by hand: git revert ${own.map((c) => c.sha).join(' ')}`;
+  const stem = `spec-run/parked/${planName(abs)}/${id}`;
+  let branch = stem;
+  for (let n = 2; spawnSync('git', ['rev-parse', '--verify', '--quiet', branch], { cwd: ROOT }).status === 0; n++) branch = `${stem}-${n}`;
+  git(`branch ${branch}`);
+  const r = spawnSync('git', ['revert', '--no-commit', `${base}..HEAD`], { cwd: ROOT, encoding: 'utf8' });
+  if (r.status !== 0) {
+    spawnSync('git', ['revert', '--abort'], { cwd: ROOT });
+    return `work kept on ${branch}, but the revert failed (${(r.stderr || '').trim().split('\n')[0]}) — revert ${base}..HEAD by hand`;
+  }
+  git(`commit -q -m "${id}: parked — work moved to ${branch}"`);
+  return `work kept on ${branch}, reverted in ${git('rev-parse --short=7 HEAD')}`;
 }
 
 // ── statement resolution ─────────────────────────────────────────────────────
@@ -264,18 +301,21 @@ if (cmd === 'status') {
   const [, id, ...q] = args;
   if (!id || !q.length) die('usage: run.mjs park <plan> <T> <question>');
   const t = findTask(parsePlan(abs), id);
+  const shelved = shelveWork(abs, t.id);
   setState(abs, t.id, '!');
-  appendLog(abs, `${t.id}: parked — ${q.join(' ')}`);
-  console.log(`! ${t.id} parked`);
+  appendLog(abs, `${t.id}: parked — ${q.join(' ')}${shelved ? ` (${shelved})` : ''}`);
+  console.log(`! ${t.id} parked${shelved ? ` — ${shelved}` : ''}`);
 } else if (cmd === 'unpark') {
   const abs = resolvePlan(args[0]);
   const [, id, ...a] = args;
   if (!id || !a.length) die('usage: run.mjs unpark <plan> <T> <how the question was answered>');
   const t = findTask(parsePlan(abs), id);
   if (t.state !== '!') die(`${t.id} is not parked`);
+  const kept = git(`branch --list spec-run/parked/${planName(abs)}/${t.id} spec-run/parked/${planName(abs)}/${t.id}-*`)
+    .split('\n').map((b) => b.replace(/^[*+ ]+/, '').trim()).filter(Boolean);
   setState(abs, t.id, ' ');
-  appendLog(abs, `${t.id}: unparked — ${a.join(' ')}`);
-  console.log(`✓ ${t.id} ready again`);
+  appendLog(abs, `${t.id}: unparked — ${a.join(' ')}${kept.length ? ` (earlier work: ${kept.join(', ')})` : ''}`);
+  console.log(`✓ ${t.id} ready again${kept.length ? ` — earlier work on ${kept.join(', ')}` : ''}`);
 } else if (cmd === 'log') {
   const abs = resolvePlan(args[0]);
   if (args.length < 2) die('usage: run.mjs log <plan> <line>');
@@ -302,7 +342,8 @@ if (cmd === 'status') {
   brief   <plan> <T>                  (re)write the task brief only
   package <plan|-> <base> [<head>]    write commits + stat + diff for review
   done    <plan> <T> <base> -- <cmd>  run the tests; only on exit 0 mark [x] and log
-  park    <plan> <T> <question>       mark [!] and log the question
+  park    <plan> <T> <question>       mark [!] and log; commits since its base move
+                                      to spec-run/parked/<plan>/<T> and are reverted
   unpark  <plan> <T> <answer>         mark [ ] again once its question is answered
   log     <plan> <line>               append one run-log line
   active  [set <plan>... | clear]     the in-progress marker the session hook reads`);

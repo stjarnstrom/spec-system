@@ -291,6 +291,35 @@ statements — the same repo `evals/_fixtures/slug-repo.sh` builds.
   wording reads false once trimming lands. Cost $0.88, 2 minutes. It chose
   the inline path, which the skill then allowed for two small tasks.
   Subagents are now the default from two tasks up.
+- **Runs 4 and 5 exercised parallel worktrees** (fixture
+  `evals/_fixtures/text-repo.sh`: three independent tasks on disjoint
+  files). In run 4, three implementers were dispatched at once with
+  `isolation: "worktree"`, and T1 merged green. It also surfaced four
+  frictions:
+  - an isolated implementer cannot write its report into the main checkout;
+  - `node --test` counted the test copies under `.claude/worktrees/`, 14
+    tests where 2 were real;
+  - `park` told the controller to revert by hand work that had only ever
+    lived on an unmerged task branch;
+  - a reviewer ran `git checkout` in the controller's tree.
+
+  All four were fixed:
+  - reports go inside the worktree;
+  - a batch's `done` waits until its worktrees are removed, and
+    `.claude/worktrees/` is git-ignored;
+  - `park` now recognises a task's own commits by subject;
+  - the reviewer reads other revisions with `git show`.
+
+  Run 5 went clean. It merged two branches, removed their worktrees, and
+  counted 7 tests where 7 were real. The third task parked on a real gap
+  (code point or code unit for "first character"). The controller had first
+  ruled on that gap in pre-flight, and the reviewer's `DRIFT` sent it back to
+  a park. Cost $2.72.
+- **Parking with committed work is mechanical now.** `run.mjs park` moves a
+  task's own commits to `spec-run/parked/<plan>/<T>` and reverts them in one
+  commit. It leaves the line alone when the task worked on its own branch,
+  and names interleaved commits rather than reverting other tasks' work. All
+  of this is unit-tested in `scripts/test-run.sh`.
 - The first runs hit a substrate limit: `check` split `verified-by` on
   every comma, so a test name could not contain one. Fixed: entries now
   split on newlines, and on a comma only when a path or `UNVERIFIED`

@@ -78,9 +78,9 @@ run.mjs start ─► implementer (tdd) ─► reviewer ─┬─► run.mjs done
   not yet satisfied, `CONTRADICTS`, `DRIFT`, and `RESOLVES`, which are
   never ruled away: those park.
 - **Parks.** A behaviour question parks its task with the question in the
-  log. Any commits the task made move to a `spec-run/parked-<T>` branch and
-  are reverted on the run branch, so the line carries only reviewed, green
-  work. Tasks that do not depend on it carry on.
+  log. Any commits the task made move to `spec-run/parked/<plan>/<T>` and
+  are reverted on the run branch (`run.mjs park` does both), so the line
+  carries only reviewed, green work. Tasks that do not depend on it carry on.
 - **Stops.** Only an irreversible or destructive operation, a
   security-sensitive action, a side effect outside the repo you did not
   authorise, or every remaining task parked.

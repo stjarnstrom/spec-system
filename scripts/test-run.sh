@@ -138,6 +138,47 @@ if (n.open+n.done+n.doing+n.blocked!==4) { console.error(JSON.stringify(n)); pro
 ' "$plan" || fail "run log lines must not count as tasks in render's progress bar"
 pass "run log stays out of the progress count"
 
+# Parking mid-flight: T2 commits, then parks. Its work moves to a parked
+# branch and is reverted, so the run branch holds only reviewed work.
+$run start "$plan" T2 >/dev/null
+t2base=$(git rev-parse HEAD)
+echo 'export const demo = (n) => { if (n < 0) throw new RangeError(); return 2 }' > src/demo.js
+git commit -q -m 'T2: reject negatives (DEMO-002)' src/demo.js
+$run park "$plan" T2 'Which error type for negatives?' > out.txt
+parked=spec-run/parked/2026-09-demo-widen/T2
+grep -q "work kept on $parked" out.txt || fail "park should name the parked branch"
+git show "$parked:src/demo.js" | grep -q RangeError || fail "the parked branch should hold the task's work"
+git diff --quiet "$t2base" HEAD -- src || fail "the run branch should be back at T2's base tree"
+git log -1 --format=%s | grep -q '^T2: parked' || fail "one revert commit should record the park"
+grep -q "T2: parked — Which error type.*work kept on $parked" "$plan" || fail "the log should say where the work went"
+pass "park moves a task's commits to a parked branch and reverts them"
+
+$run unpark "$plan" T2 'RangeError (DEMO-002)' > out.txt
+grep -q "earlier work on $parked" out.txt || fail "unpark should point at the parked work"
+pass "unpark points at the parked work"
+
+# Another task's merge on the line, none of T2's commits: T2 worked on its own
+# branch (a parallel worktree), so there is nothing to take off the line.
+$run start "$plan" T2 >/dev/null
+echo 'export const other = 1' > src/other.js && git add src/other.js
+git commit -q -m 'T4: merged from its worktree' src/other.js
+$run park "$plan" T2 'unsure again' > out.txt
+if grep -q 'revert' out.txt; then fail "park should not revert when none of the commits are the task's"; fi
+git log -1 --format=%s | grep -q '^T4: merged' || fail "the other task's commit must stay"
+pass "park leaves the line alone when the task's work lives on its own branch"
+
+# The task's own commits interleaved with another task's: named, not reverted.
+$run unpark "$plan" T2 'answered' >/dev/null
+$run start "$plan" T2 >/dev/null
+echo 'export const demo = () => 3' > src/demo.js
+git commit -q -m 'T2: again' src/demo.js
+echo 'export const other = 2' > src/other.js
+git commit -q -m 'T4: more' src/other.js
+$run park "$plan" T2 'still unsure' > out.txt
+grep -q 'not reverted.*git revert [0-9a-f]' out.txt || fail "park should name the task's commits for a revert by hand"
+git log -1 --format=%s | grep -q '^T4: more' || fail "no revert commit on an interleaved range"
+pass "park names interleaved commits instead of reverting others' work"
+
 mkdir -p docs/changes/completed && cp "$plan" docs/changes/completed/
 mv "$plan" "$plan.moved"
 $run status "$plan" > out.txt || fail "status should follow a plan that pin moved to completed/"

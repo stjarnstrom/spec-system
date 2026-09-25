@@ -76,13 +76,14 @@ and write the code.
         carry on with tasks that do not depend on it.
 
       **Parking a task mid-flight.** `run.mjs park <plan> <T> "<question>"`.
-      If the task has commits since its base, keep them off the run branch
-      so every later `done` sees only reviewed, green work:
-      `git branch spec-run/parked-<T>` then `git revert --no-edit <base>..HEAD`,
-      and log where the work went. When the question is answered — through
-      spec-amend, which rewrites the task to cite the answer's statements —
-      `run.mjs unpark <plan> <T> "<answer>"` puts it back in the queue, and
-      the parked branch is there to cherry-pick from.
+      When the task has commits since its base, `park` moves them to
+      `spec-run/parked/<plan>/<T>` and reverts them on the run branch in one
+      commit, so every later `done` sees only reviewed, green work. If other
+      tasks have completed on top of that base, it leaves the range alone
+      and says so — take the task's own commits off by hand. When the
+      question is answered — through spec-amend, which rewrites the task to
+      cite the answer's statements — `run.mjs unpark <plan> <T> "<answer>"`
+      puts it back in the queue and names the parked branch to build on.
 
    d. **Review.** Log each ruling the implementer's reply lists:
       `run.mjs log <plan> "<T>: ruling — <decided> — <why> — <cost if wrong>"`.
@@ -123,13 +124,26 @@ and write the code.
       result line. Red records nothing — that is another fix round. Commit
       the plan file so the ledger is in git as well as on disk.
 
-   Tasks marked `independent` whose owned paths are disjoint may run in
-   parallel: each implementer dispatched with `isolation: "worktree"`, its
-   own branch name, and the base commit; each reviewed from its own branch
-   (`run.mjs package <plan> <base> <task-branch>`); each branch merged into
-   the run branch (spec-system:merge-conflicts when needed) before its
-   `done` runs on the merged result. One at a time is the
-   default — parallel pays only when tasks are many and truly disjoint.
+   Tasks marked `independent` whose files are disjoint may run in parallel,
+   as a batch:
+   - Before dispatching, make sure `.claude/worktrees/` (where Claude Code
+     puts isolated worktrees) is git-ignored; add it and commit if not.
+   - Dispatch every implementer in one message with `isolation: "worktree"`,
+     its own branch name, and the base commit. An isolated implementer can
+     write only inside its worktree, so give its report path relative to it
+     (`.spec-run/<plan>/<T>-report.md`); its reply returns the absolute path.
+   - Review each from its own branch: `run.mjs package <plan> <base> <task-branch>`.
+   - Merge each reviewed branch into the run branch
+     (spec-system:merge-conflicts when needed), then remove its worktree
+     (`git worktree remove <path>`) and delete the merged branch
+     (`git branch -d`). A task that parks is never merged: its branch is
+     the parked work, and `run.mjs park` leaves the run branch alone.
+   - Run `done` for the batch's tasks only once every worktree in the batch
+     is gone — test runners pick up the copies under `.claude/worktrees/`
+     and would count their tests too.
+
+   One at a time is the default. Parallel pays only when tasks are many and
+   truly disjoint.
 
 4. **Final review.** `run.mjs package <plan> <run base>` over everything
    the plan changed — the run base is the first base in the run log;

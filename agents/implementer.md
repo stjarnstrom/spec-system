@@ -69,7 +69,8 @@ outside your task go under Found, not into the diff.
 
 ## Report
 
-Write the full report to the report path in your dispatch:
+Write the full report to the report path in your dispatch (in an isolated
+worktree, that path is relative to your worktree root):
 
 - Changed files and commits
 - Statements → tests: each ID and the test that proves it
