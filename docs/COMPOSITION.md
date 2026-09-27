@@ -53,7 +53,12 @@ The user settled four conflicts directly:
    `specs/`, and a resume pointer when a run is in progress. It is
    re-injected after compaction.
 3. **Subagent models.** Superpowers tiers models by role. Decision: every
-   subagent inherits the session model.
+   subagent inherits the session model, unless the host opts into per-task
+   tiers. `scripts/openrouter.mjs tier` asks Jev, through OpenRouter, how
+   hard the task is and logs a tier. The implementer's model changes only
+   when `SPEC_SYSTEM_TIER_CHEAP`, `_SESSION`, or `_FRONTIER` names one.
+   The reviewer is never put on the cheap tier. No key, no map, or a
+   low-confidence answer leaves both on inherit.
 4. **Interview style.** Superpowers asks one question per message; Matt
    asks the whole frontier in rounds. Decision: one question per message,
    multiple choice, recommendation first, design approved section by

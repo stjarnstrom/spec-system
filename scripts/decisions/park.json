@@ -1,0 +1,10 @@
+{
+  "behaviour": {
+    "type": "noul",
+    "instructions": "Does settling this question change observable behaviour a caller can see, or take a side on an open uncertainty (-U-)? The question is state.question.",
+    "criteria": {
+      "true": "The answer would add, remove, or alter behaviour a caller can observe, or would close an open uncertainty.",
+      "false": "The answer is an implementation choice: names, structure, library calls, or the wording of an error no caller relies on."
+    }
+  }
+}

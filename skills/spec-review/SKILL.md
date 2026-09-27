@@ -31,10 +31,19 @@ or nothing (default: working tree + staged vs HEAD; if clean, `HEAD~1..HEAD`).
    - **Unowned** → silence. Not this review's business.
 
 3. **Read the touched statements, not the whole spec.** For each touched
-   capability open `specs/<spec>.md` and select the requirements, invariants,
-   and uncertainties whose subject matter the diff plausibly touches — match on
-   the functions, channels, messages, and fields the diff changes. Read those
-   blocks in full; skim section headings for ones you may have missed.
+   capability open `specs/<spec>.md` and run
+
+   `git diff --stat <target> | node ${CLAUDE_PLUGIN_ROOT}/scripts/openrouter.mjs review --spec specs/<spec>.md`
+
+   For each statement in the JSON, `mustRead: false` means a heading skim
+   is enough. `mustRead: true`, or `"acted": false`, means read that block
+   in full. The prior is not a verdict: you still judge every block you
+   read, you still cite file:line, and a statement the diff obviously
+   touches gets read even when the prior said otherwise. With no key the
+   script does not act and this step is the manual selection it always
+   was — match on the functions, channels, messages, and fields the diff
+   changes, read those blocks in full, and skim headings for ones you may
+   have missed.
 
 4. **Judge each selected statement** against the diff, one of:
    - **CONSISTENT** — the change preserves the stated behaviour.
