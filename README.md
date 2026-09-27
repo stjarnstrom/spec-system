@@ -77,11 +77,21 @@ what needs you.
 
 **Agents.** `implementer` (writes code test-first from a brief; cannot spawn
 subagents) and `reviewer` (read-only; judges a diff against the statements
-it names and for quality). Both inherit the session's model.
+it names and for quality). Both inherit the session's model unless the
+host has set a per-task tier (`SPEC_SYSTEM_TIER_CHEAP`, `_SESSION`,
+`_FRONTIER`). The reviewer is never put on the cheap tier.
 
 **Hook.** At session start and after every compaction: a short skill map,
 the spec rules in repos that have `specs/`, and a resume pointer while a
-run is in progress.
+run is in progress. On each user prompt, when `OPENROUTER_API_KEY` is set
+and no run is in progress, a second hook asks Jev which skill fits and,
+on a confident answer, adds one line naming it. No key adds nothing.
+
+**Decisions.** `scripts/openrouter.mjs` calls `typesafe/jev-1.13` through
+OpenRouter (`POST /api/v1/systemone`). It routes prompts, scores task
+tiers, marks which statements a spec-review should read, and logs a
+park-versus-rule probability it does not act on. A missing key, a timeout,
+or a low-confidence answer leaves the loop unchanged.
 
 ## The substrate
 
@@ -139,6 +149,7 @@ came from where and what was decided where they disagree;
 ```
 sh substrate/test-plan-lifecycle.sh   # registry.mjs: plans, pin, archive
 sh scripts/test-run.sh                # run.mjs: briefs, packages, the ledger
+sh scripts/test-openrouter.sh         # openrouter.mjs: gates, fail-open, the hook
 claude plugin validate .claude-plugin/plugin.json
 ```
 

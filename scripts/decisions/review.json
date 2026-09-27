@@ -1,0 +1,21 @@
+{
+  "touches": {
+    "type": "noul",
+    "instructions": "Does the diff stat in state.stat plausibly change the behaviour of statement {{id}}? The statement text is the entry with that id in state.statements.",
+    "criteria": {
+      "true": "The diff could make this statement false, or could add behaviour this statement would have to cover.",
+      "false": "Nothing in the diff stat is about what this statement describes."
+    }
+  },
+  "verdict": {
+    "type": "choice",
+    "instructions": "Which spec-review verdict fits statement {{id}}, given only state.stat and that statement's text? Choose UNSURE when that is not enough to judge.",
+    "criteria": {
+      "CONSISTENT": "The diff preserves the stated behaviour.",
+      "CONTRADICTS": "The diff makes the statement false.",
+      "DRIFT": "The diff adds or changes observable behaviour the statement does not cover.",
+      "RESOLVES": "The statement is an open uncertainty and the diff takes a side.",
+      "UNSURE": "The stat and the statement text are not enough to judge."
+    }
+  }
+}

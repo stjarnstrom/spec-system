@@ -1,0 +1,32 @@
+{
+  "skill": {
+    "type": "choice",
+    "instructions": "Which spec-system skill should handle this user message? Pick none when no listed skill is the right next step.",
+    "criteria": {
+      "none": "No listed skill applies: a question answered from context, chatter, or work this plugin does not own.",
+      "spec-shape": "The user wants to build something or change what software does, and has not yet approved spec statements. Phrases like \"let's build\", \"add a\", \"make it\", \"I want it to\".",
+      "spec-amend": "Behaviour is already approved and the next step is the spec delta and its plan, or anomaly findings should become spec changes. No code yet.",
+      "spec-implement": "A plan already exists and the user wants it implemented now, staying in the session.",
+      "spec-run": "The user wants to leave while one or more plans run to done. \"run it\", \"overnight\", \"take it from here\".",
+      "tdd": "The next action is a failing test for a behaviour that is already specified, or for a small change whose flow already exists.",
+      "debug": "Something is broken, throwing, failing a test, flaky, or slow. Diagnose before editing.",
+      "review": "Review a branch, pull request, or diff, or respond to review comments.",
+      "spec-review": "Review a diff against the spec layer only: contradictions, drift, an open uncertainty settled in code.",
+      "architecture": "Structure is hard to change or test: shallow modules, tangled seams. Not a request to change behaviour.",
+      "fan-out": "Many independent units: an audit across services, a migration across packages, several unrelated failures.",
+      "merge-conflicts": "Resolve a merge or rebase conflict.",
+      "finish": "Finished work should be verified and then merged, opened as a pull request, or left on the branch.",
+      "spec-init": "Set up a specs directory in a repo that does not have one.",
+      "spec-boundaries": "Propose capability boundaries from co-change history.",
+      "spec-adopt": "Describe one existing capability as it is and pin it, without fixing anything."
+    }
+  },
+  "behaviour_change": {
+    "type": "noul",
+    "instructions": "Does this message ask to change what the software observably does?",
+    "criteria": {
+      "true": "The user wants behaviour added, removed, or changed.",
+      "false": "The user wants a diagnosis, a review, a structural change that preserves behaviour, or no code change."
+    }
+  }
+}

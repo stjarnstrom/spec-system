@@ -132,7 +132,13 @@ file/pin mismatch still records the outstanding work.
 
 ## Cost
 
-Subagents inherit the session's model. The run spends tokens on fresh
-contexts per task and on reviews; it saves them by keeping the controller's
-context free of diffs and history, which is also what lets a run last for
-hours. A plan with a single small task runs inline instead.
+Subagents inherit the session's model unless the host has set
+`SPEC_SYSTEM_TIER_CHEAP`, `SPEC_SYSTEM_TIER_SESSION`, or
+`SPEC_SYSTEM_TIER_FRONTIER`. With `OPENROUTER_API_KEY`, each task is
+classified first (`typesafe/jev-1.13` on OpenRouter's System One endpoint)
+and the tier is logged; a model is passed only for a tier whose variable
+is set. The reviewer stays at the session tier or above. A missing key
+changes nothing. The run spends tokens on fresh contexts per task and on
+reviews; it saves them by keeping the controller's context free of diffs
+and history, which is also what lets a run last for hours. A plan with a
+single small task runs inline instead.

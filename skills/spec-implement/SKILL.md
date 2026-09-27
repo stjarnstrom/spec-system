@@ -54,13 +54,26 @@ and write the code.
       owned paths, test seams, and review focus. It prints the brief and
       report paths.
 
-   b. **Dispatch the implementer** — Agent tool,
-      `subagent_type: spec-system:implementer`. The prompt carries five
-      things: one line on where the task fits; the brief path ("read this
-      first — it is your requirements"); interfaces and decisions from
-      earlier tasks the brief cannot know; your rulings on any ambiguity you
-      noticed; the base commit and report path. Nothing pasted from the plan
-      or from earlier tasks. Keep the agent id: fix rounds resume it.
+   b. **Tier, then dispatch the implementer.**
+      `node ${CLAUDE_PLUGIN_ROOT}/scripts/openrouter.mjs tier --brief <brief> --task <T> --plan <plan>`
+      prints one JSON object and, when a key is set, a run-log line. Pass
+      `"model"` as the Agent `model` argument only when it is a string; null
+      keeps `inherit`. `"reviewerModel"` is the same value for the reviewer
+      in step 3d, and it is never the cheap tier: a cheap implementer still
+      gets a session-or-above reviewer, or inherit when that tier's variable
+      is unset. No key, a timeout, and a low-confidence answer all leave
+      both null. When this loop is running inline, run the command so the
+      tier is on the log, and ignore `model` — you are already the session
+      model.
+
+      Dispatch — Agent tool, `subagent_type: spec-system:implementer`, and
+      `model` only when the JSON gave one. The prompt carries five things:
+      one line on where the task fits; the brief path ("read this first —
+      it is your requirements"); interfaces and decisions from earlier tasks
+      the brief cannot know; your rulings on any ambiguity you noticed; the
+      base commit and report path. Nothing pasted from the plan or from
+      earlier tasks. Keep the agent id: fix rounds resume it. Do not tier
+      again on a fix round.
 
    c. **Handle its status.**
       - `DONE` → review.
@@ -75,7 +88,9 @@ and write the code.
         `-U-` → park it (below). Ask the user if they are here; otherwise
         carry on with tasks that do not depend on it.
 
-      **Parking a task mid-flight.** `run.mjs park <plan> <T> "<question>"`.
+      **Parking a task mid-flight.** Record the park prior (Rulings and
+      questions) before `run.mjs park <plan> <T> "<question>"`. The
+      probability does not choose.
       If the task has commits since its base, keep them off the run branch
       so every later `done` sees only reviewed, green work:
       `git branch spec-run/parked-<T>` then `git revert --no-edit <base>..HEAD`,
@@ -90,7 +105,8 @@ and write the code.
       keeps the ruling. Then `run.mjs package <plan> <base>` writes the
       diff package.
       Dispatch `spec-system:reviewer` in task mode with the brief, report,
-      and package paths. Your prompt names files and a mode; it never tells
+      and package paths, and with `model` set to `reviewerModel` from step
+      3b when that value is a string. Your prompt names files and a mode; it never tells
       the reviewer what to let pass. Words like "do not flag", "at most
       Minor", or "the plan chose" in your prompt mean you are pre-judging —
       take them out. Settle each `CANNOT VERIFY` yourself by reading the
@@ -169,6 +185,8 @@ and write the code.
    - **Found** — deferred minors, anomalies, anything outside the plan.
    - **Rulings** — every `ruling` line in the run log, with its cost if
      wrong. Exhaustive: a ruling left out of the report was made in secret.
+     Lines that start with `jev —` are priors, not rulings; they stay in
+     the log and out of this heading.
 
 ## Rulings and questions
 
@@ -177,6 +195,12 @@ engineer could reasonably have gone the other way, and continue. What the
 code observably does belongs to the spec: attended, ask; unattended, park
 the task and keep going with the rest. A ruling never adds, removes, or
 alters behaviour a caller can observe.
+
+Before you park a task or log a ruling, run
+`node ${CLAUDE_PLUGIN_ROOT}/scripts/openrouter.mjs park --plan <plan> --task <T> --question "<the question you are about to settle>"`.
+It appends a probability to the run log. That probability does not choose:
+a high one does not park, and a low one does not rule. You still apply the
+line above. No key means the command records nothing and you continue.
 
 Stop early only for an irreversible or destructive operation, a
 security-sensitive action, a side effect outside this repository the user

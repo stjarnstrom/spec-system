@@ -237,6 +237,16 @@ The same ground rules apply:
   when its test command exits 0, appending to the run log, reporting where
   a plan stands after a compaction. It lives in the plugin, not the
   substrate: host CI never needs it, and only a run uses it.
+- **Classifications go to Jev when the host has an OpenRouter key.**
+  `scripts/openrouter.mjs` calls `typesafe/jev-1.13` on OpenRouter's
+  System One endpoint (`/systemone`, the same request shape as TypeSafe).
+  It routes a prompt to a skill, scores a task's tier, marks which
+  statements a spec-review should read, and records a park-versus-rule
+  probability it does not act on. No key, or any failure, leaves the loop
+  as it was. A tier changes an agent's model only when the host sets
+  `SPEC_SYSTEM_TIER_*`. The reviewer is never sent to the cheap tier.
+  Chat completions for a later factory pass can share this key; they are
+  not part of this call.
 - **The plan is the ledger.** Superpowers keeps a separate ledger in a
   workspace it deletes at the end, so its rulings survive only in a chat
   message. Here the ledger is the plan's `## Run log`, the plan is

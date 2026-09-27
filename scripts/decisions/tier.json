@@ -1,0 +1,22 @@
+{
+  "complexity": {
+    "type": "score",
+    "labels": ["mechanical", "local", "cross-capability", "architectural"],
+    "instructions": "How hard is this plan task to implement correctly against its statements?",
+    "criteria": [
+      "Mechanical: one statement, one place, a test and the least code that passes it.",
+      "Local behaviour: a few statements inside one capability, ordinary control flow.",
+      "Cross-capability: a seam, a caller outside the owned paths, or an interface a later task depends on.",
+      "Architectural: a new module boundary, concurrency, a migration, or a design the plan leaves open."
+    ]
+  },
+  "tier": {
+    "type": "choice",
+    "instructions": "Which model tier should implement this task? Judge the task, not the role. A small diff can still be frontier when it could settle an open question or miss a statement.",
+    "criteria": {
+      "cheap": "Mechanical test-first work. A smaller model is unlikely to miss a statement or to guess behaviour.",
+      "session": "Ordinary implementation at the session model's level.",
+      "frontier": "A smaller model is likely to miss a park-versus-rule line, a satisfied-versus-partial distinction, or a cross-file invariant."
+    }
+  }
+}
