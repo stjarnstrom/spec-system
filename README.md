@@ -1,12 +1,11 @@
-# spec-system
+# The spec is the source of truth
 
 A Claude Code plugin for **spec-as-truth development**, and the whole
-engineering loop around it. The spec is the source of truth and the code is
-the artifact. Changes go spec-first: shape the change with the user,
-amend the spec, derive a plan from the spec *delta*, and run the plan —
-unattended if you like — with a fresh implementer and a reviewer per task.
-The last act is moving the pin that records which spec content the code
-satisfies.
+engineering loop around it. The code is the artifact. Changes go
+spec-first: shape the change with the user, amend the spec, derive a plan
+from the spec *delta*, and run the plan — unattended if you like — with a
+fresh implementer and a reviewer per task. The last act is moving the pin
+that records which spec content the code satisfies.
 
 Specs carry no version numbers. Git holds their history, and the pin is a
 content hash of the spec file: equal to the file means in sync, different
