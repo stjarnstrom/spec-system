@@ -1,0 +1,1128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>spec-system — field guide</title>
+<style>
+  :root {
+    --paper: #ffffff;
+    --ink: #10202e;
+    --muted: #52616e;
+    --panel: #e4e9ed;
+    --panel-deep: #d8dfe5;
+    --judge: #2062ae;
+    --learn: #d14d21;
+    --console: #10202e;
+    --console-ink: #dce6ee;
+    --console-dim: #7e93a4;
+    --display: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; overflow-x: clip; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 1rem;
+    line-height: 1.65;
+    overflow-x: clip;
+    max-width: 100%;
+  }
+  a { color: var(--judge); text-decoration: none; }
+  a:hover, a:focus-visible { text-decoration: underline; }
+  :focus-visible { outline: 2px solid var(--learn); outline-offset: 2px; }
+
+  .wrap, .wrap-wide {
+    width: 100%;
+    min-width: 0;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+  .wrap { max-width: 740px; }
+  .wrap-wide { max-width: 1020px; }
+
+  header { border-bottom: 1px solid var(--panel-deep); padding: 1rem 0; }
+  .masthead {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; flex-wrap: wrap;
+  }
+  .wordmark {
+    font-family: var(--display); font-weight: 700; font-size: 1.05rem;
+    letter-spacing: -0.01em;
+  }
+  .wordmark .dim { color: var(--muted); font-weight: 400; font-style: italic; }
+  nav { display: flex; gap: 1.1rem; flex-wrap: wrap; }
+  nav a {
+    font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--muted);
+  }
+  nav a:hover { color: var(--ink); text-decoration: none; }
+
+  .hero { padding-top: 4.5rem; padding-bottom: 3rem; }
+  .eyebrow {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--muted); display: block;
+    margin-bottom: 1rem;
+  }
+  .eyebrow.learn-eb { color: var(--learn); }
+  h1 {
+    font-family: var(--display); font-weight: 700;
+    font-size: clamp(2.1rem, 5vw, 3.2rem); line-height: 1.1;
+    letter-spacing: -0.03em; max-width: 16em;
+  }
+  .thesis {
+    margin-top: 1.5rem; font-size: clamp(1.05rem, 2vw, 1.25rem);
+    color: var(--muted); max-width: 38em; line-height: 1.6;
+  }
+  .thesis strong { color: var(--ink); font-weight: 600; }
+  .doc-meta {
+    margin-top: 1.75rem; font-family: var(--mono); font-size: 0.72rem;
+    letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+    display: flex; flex-wrap: wrap; gap: 0.35rem 0;
+  }
+  .doc-meta span { white-space: nowrap; }
+  .doc-meta span + span::before { content: "·"; margin: 0 0.6em; }
+
+  section { padding: 3.5rem 0 0.5rem; overflow-x: clip; }
+  section h2 {
+    font-family: var(--display); font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 1.9rem); letter-spacing: -0.02em;
+    margin-bottom: 1.1rem;
+  }
+  section p { margin-bottom: 1.05rem; max-width: 44em; overflow-wrap: anywhere; }
+  section p:last-child { margin-bottom: 0; }
+  .lead-in { color: var(--muted); }
+  strong { font-weight: 600; }
+  code {
+    font-family: var(--mono); font-size: 0.85em;
+    background: var(--panel); padding: 0.1em 0.35em; border-radius: 3px;
+    overflow-wrap: anywhere; word-break: break-word;
+  }
+
+  .plate {
+    background: var(--panel); border-radius: 10px;
+    padding: 1.75rem 1.5rem 1.25rem; margin: 2rem 0;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    position: relative; max-width: 100%;
+  }
+  .plate svg { display: block; width: 100%; height: auto; min-width: 620px; }
+  .flow-list, .flow-park { display: none; }
+  .plate-caption {
+    font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em;
+    color: var(--muted); margin-top: 1rem; text-transform: uppercase;
+  }
+  .legend { display: flex; gap: 1.5rem; flex-wrap: wrap; margin-top: 0.6rem; }
+  .legend span {
+    font-family: var(--mono); font-size: 0.7rem; color: var(--muted);
+    display: inline-flex; align-items: center; gap: 0.45em;
+  }
+  .swatch { width: 1.4em; height: 3px; border-radius: 2px; display: inline-block; }
+  .swatch.build { background: var(--ink); }
+  .swatch.judge { background: var(--judge); }
+  .swatch.learn { background: var(--learn); }
+
+  .signal { opacity: 0.18; animation: blink 6s linear infinite; }
+  @keyframes blink {
+    0%, 18%, 100% { opacity: 0.18; }
+    7% { opacity: 1; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .signal { animation: none; }
+  }
+
+  .start-steps { margin: 2rem 0 1.5rem; counter-reset: start-step; min-width: 0; }
+  .start-step {
+    display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); gap: 0.85rem;
+    padding: 1.1rem 0; border-top: 1px solid var(--panel-deep);
+    min-width: 0;
+  }
+  .start-step:last-child { border-bottom: 1px solid var(--panel-deep); }
+  .start-step::before {
+    counter-increment: start-step; content: counter(start-step, decimal-leading-zero);
+    font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em;
+    color: var(--muted); padding-top: 0.2rem;
+  }
+  .start-step h3 {
+    font-family: var(--display); font-weight: 700; font-size: 1.05rem;
+    letter-spacing: -0.015em; margin-bottom: 0.35rem;
+  }
+  .start-step p {
+    font-size: 0.95rem; color: var(--muted); margin-bottom: 0.5rem; max-width: 40em;
+  }
+  .start-step p:last-child { margin-bottom: 0; }
+  .start-step strong { color: var(--ink); }
+
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+    gap: 0.9rem; margin: 2rem 0; min-width: 0;
+  }
+  .card {
+    background: var(--panel); border-radius: 10px; padding: 1.15rem 1.25rem;
+    min-width: 0; max-width: 100%;
+  }
+  .card h3 {
+    font-family: var(--display); font-weight: 700; font-size: 1.05rem;
+    letter-spacing: -0.015em; margin-bottom: 0.1rem;
+  }
+  .card .tech {
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.05em;
+    color: var(--muted); text-transform: uppercase; display: block;
+    margin-bottom: 0.5rem;
+  }
+  .card.learn-card .tech { color: var(--learn); }
+  .card.judge-card .tech { color: var(--judge); }
+  .card p { font-size: 0.92rem; line-height: 1.5; color: var(--muted); margin: 0 0 0.55rem; }
+  .card p:last-child { margin-bottom: 0; }
+  .card strong { color: var(--ink); }
+  .subhead {
+    font-family: var(--display); font-weight: 700;
+    font-size: 1.25rem; letter-spacing: -0.02em;
+    margin: 2.2rem 0 0.8rem;
+  }
+
+  .timeline { position: relative; margin: 2.5rem 0 1rem; padding-left: 8rem; }
+  .rail {
+    position: absolute; left: 6.4rem; top: 0.5rem; bottom: 0.5rem; width: 2px;
+    background: var(--panel-deep); border-radius: 1px;
+  }
+  .event { position: relative; padding: 0 0 2.3rem 1.6rem; }
+  .event:last-child { padding-bottom: 0.5rem; }
+  .event::before {
+    content: ""; position: absolute; left: -1.6rem; top: 0.42em;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--paper); border: 2px solid var(--muted);
+    transform: translateX(-4px);
+  }
+  .event.judge-dot::before { border-color: var(--judge); background: var(--judge); }
+  .event.learn-dot::before { border-color: var(--learn); background: var(--learn); }
+  .tplus {
+    position: absolute; left: -8rem; top: 0.18em; width: 5.6rem;
+    text-align: right; font-family: var(--mono); font-size: 0.72rem;
+    letter-spacing: 0.04em; color: var(--muted);
+  }
+  .event h3 {
+    font-family: var(--display); font-weight: 700; font-size: 1.08rem;
+    letter-spacing: -0.015em; margin-bottom: 0.35rem;
+  }
+  .event p { font-size: 0.95rem; color: var(--ink); max-width: 36em; margin-bottom: 0.4rem; }
+  .event .wire {
+    font-family: var(--mono); font-size: 0.72rem; color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+
+  .duo {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(280px, 100%), 1fr));
+    gap: 0.9rem; margin: 1.8rem 0; min-width: 0;
+  }
+  .duo .card h3 { font-size: 1.05rem; margin-bottom: 0.4rem; }
+  .duo .card p { margin-bottom: 0.6rem; }
+  .duo .card p:last-child { margin-bottom: 0; }
+  .duo .card code { background: var(--panel-deep); }
+
+  .console {
+    background: var(--console); color: var(--console-ink);
+    border-radius: 10px; padding: 1.4rem 1.5rem; margin: 1.8rem 0;
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    max-width: 100%; min-width: 0;
+  }
+  .console pre {
+    font-family: var(--mono); font-size: 0.84rem; line-height: 1.65;
+    margin: 0; white-space: pre; tab-size: 2;
+  }
+  .console .c { color: var(--console-dim); }
+  .console .k { color: #e8a87c; }
+  .console .f { color: #9ec7ef; }
+
+  .tbl-scroll {
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+    margin: 1.8rem 0; max-width: 100%;
+  }
+  .tbl { width: 100%; border-collapse: collapse; font-size: 0.92rem; min-width: 560px; }
+  .tbl th {
+    font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--muted); text-align: left;
+    padding: 0.5rem 1rem 0.5rem 0; border-bottom: 1px solid var(--panel-deep);
+  }
+  .tbl td {
+    padding: 0.55rem 1rem 0.55rem 0; border-bottom: 1px solid var(--panel-deep);
+    vertical-align: top; overflow-wrap: anywhere;
+  }
+  .tbl .who { font-family: var(--mono); font-size: 0.74rem; color: var(--judge); white-space: nowrap; }
+  .tbl .who.learn-w { color: var(--learn); }
+  .tbl .who.ink-w { color: var(--ink); }
+
+  footer {
+    margin-top: 5rem; border-top: 1px solid var(--panel-deep);
+    padding: 2rem 0 3rem;
+  }
+  footer p {
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.05em;
+    color: var(--muted); text-transform: uppercase;
+  }
+  footer a { color: var(--muted); text-decoration: underline; }
+  footer a:hover { color: var(--ink); }
+
+  @media (max-width: 640px) {
+    .wrap, .wrap-wide { padding: 0 1rem; }
+    .hero { padding-top: 3rem; padding-bottom: 2.25rem; }
+    h1 { max-width: none; }
+    .console { padding: 1.1rem 1rem; margin: 1.2rem 0; border-radius: 8px; }
+    .console pre { font-size: 0.75rem; line-height: 1.55; }
+    .plate { padding: 1.25rem 1rem 1rem; margin: 1.4rem 0; overflow: visible; }
+    .plate svg { display: none; }
+    .flow-list {
+      display: grid; gap: 0.45rem; list-style: none; margin: 0; padding: 0;
+    }
+    .flow-list li {
+      background: #f1f3f5; border: 1.5px solid var(--ink); border-radius: 8px;
+      padding: 0.55rem 0.75rem; font-family: var(--mono); font-size: 0.8rem;
+      line-height: 1.4;
+    }
+    .flow-list li.flow-run {
+      background: var(--judge); color: #f1f3f5; border-color: var(--judge);
+    }
+    .flow-list li.flow-report { border-color: var(--learn); color: var(--learn); }
+    .flow-park {
+      display: block; margin: 0.85rem 0 0; font-family: var(--mono);
+      font-size: 0.75rem; line-height: 1.45; color: var(--learn);
+    }
+    .start-step { grid-template-columns: 2rem minmax(0, 1fr); gap: 0.65rem; }
+    .cards, .duo { grid-template-columns: 1fr; }
+    .timeline { padding-left: 1.6rem; }
+    .rail { left: 0; }
+    .tplus { position: static; display: block; width: auto; text-align: left; margin-bottom: 0.2rem; }
+    .event { padding-left: 1.1rem; }
+    .event::before { left: -1.6rem; }
+    .tbl-scroll { overflow: visible; margin: 1.4rem 0; }
+    .tbl {
+      min-width: 0; width: 100%;
+      border-collapse: separate; border-spacing: 0; font-size: 0.92rem;
+    }
+    .tbl thead {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+    .tbl tbody { display: flex; flex-direction: column; gap: 0.75rem; }
+    .tbl tr { display: block; background: var(--panel); border-radius: 10px; padding: 1rem 1.1rem; }
+    .tbl td {
+      display: block; width: 100%; min-width: 0;
+      padding: 0.35rem 0 0.15rem; border: none; white-space: normal;
+    }
+    .tbl td + td {
+      border-top: 1px solid var(--panel-deep);
+      margin-top: 0.5rem; padding-top: 0.55rem;
+    }
+    .tbl td::before {
+      content: attr(data-label); display: block;
+      font-family: var(--mono); font-size: 0.66rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 0.25rem;
+    }
+    .tbl td:first-child {
+      font-family: var(--display); font-weight: 700; font-size: 1rem;
+      letter-spacing: -0.015em; color: var(--ink); padding-top: 0;
+    }
+    .tbl .who { white-space: normal; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap-wide masthead">
+    <span class="wordmark">spec-system <span class="dim">— field guide</span></span>
+    <nav aria-label="Sections">
+      <a href="#loop">The loop</a>
+      <a href="#decides">Who decides</a>
+      <a href="#triggers">Triggers</a>
+      <a href="#which">Which walk</a>
+      <a href="#greenfield">Greenfield</a>
+      <a href="#brownfield">Brownfield</a>
+      <a href="#run">A run</a>
+      <a href="#pin">The pin</a>
+      <a href="#fieldnotes">Field notes</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <span class="eyebrow">spec-as-truth</span>
+    <h1>You decide what. The run decides how.</h1>
+    <p class="thesis">
+      The spec is the source of truth and the code is the artifact.
+      Shape the change, amend the spec, derive a plan from the delta, and
+      run it — unattended if you like — until the
+      <strong>pin</strong> moves. A question about behaviour parks its task.
+      The run logs how it built the rest.
+    </p>
+    <p class="doc-meta">
+      <span>docs/guide/</span>
+      <span>updated 2026-09-28</span>
+      <span>zero dependencies</span>
+    </p>
+  </div>
+
+  <section id="loop">
+    <div class="wrap">
+      <span class="eyebrow">The circuit</span>
+      <h2>From idea to pin</h2>
+      <p class="lead-in">
+        Everything that needs you happens before the run: the interview,
+        the plan, and spec-run’s readiness questions. After a two-line
+        summary, the next thing you read is the report.
+      </p>
+    </div>
+    <div class="wrap-wide">
+      <div class="plate">
+        <svg viewBox="0 0 960 230" role="img" aria-label="Diagram: spec-shape leads to spec-amend, then a plan, then spec-run. A park wire returns questions about behaviour to spec-shape. The run ends in a report.">
+          <defs>
+            <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0,0 L8,4 L0,8 z" fill="#10202e"/>
+            </marker>
+            <marker id="arr-l" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto">
+              <path d="M0,0 L8,4 L0,8 z" fill="#d14d21"/>
+            </marker>
+          </defs>
+          <g font-family="ui-monospace, Menlo, monospace" font-size="13">
+            <rect x="16" y="58" width="150" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
+            <text x="91" y="86" text-anchor="middle" fill="#10202e">spec-shape</text>
+
+            <rect x="206" y="58" width="150" height="46" rx="8" fill="#f1f3f5" stroke="#10202e" stroke-width="1.5"/>
+            <text x="281" y="86" text-anchor="middle" fill="#10202e">spec-amend</text>
+
+            <rect x="396" y="58" width="110" height="46" rx="23" fill="#d8dfe5" stroke="#52616e" stroke-width="1.2"/>
+            <text x="451" y="86" text-anchor="middle" fill="#10202e">plan</text>
+
+            <rect x="546" y="58" width="150" height="46" rx="8" fill="#2062ae" stroke="#2062ae"/>
+            <text x="621" y="86" text-anchor="middle" fill="#f1f3f5">spec-run</text>
+
+            <rect x="746" y="58" width="190" height="46" rx="8" fill="#f1f3f5" stroke="#d14d21" stroke-width="1.5"/>
+            <text x="841" y="86" text-anchor="middle" fill="#d14d21">report</text>
+          </g>
+          <line x1="166" y1="81" x2="198" y2="81" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="356" y1="81" x2="388" y2="81" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="506" y1="81" x2="538" y2="81" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
+          <line x1="696" y1="81" x2="738" y2="81" stroke="#10202e" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <path d="M 621 104 C 621 168, 200 168, 94 109" fill="none" stroke="#d14d21" stroke-width="1.5" marker-end="url(#arr-l)"/>
+          <text x="360" y="178" text-anchor="middle" font-family="ui-monospace, Menlo, monospace" font-size="11" fill="#d14d21">park — a question about what the software does</text>
+
+          <g aria-hidden="true">
+            <circle class="signal" cx="182" cy="81" r="3.5" fill="#2062ae" style="animation-delay: 0s"/>
+            <circle class="signal" cx="372" cy="81" r="3.5" fill="#2062ae" style="animation-delay: 0.7s"/>
+            <circle class="signal" cx="522" cy="81" r="3.5" fill="#2062ae" style="animation-delay: 1.4s"/>
+            <circle class="signal" cx="716" cy="81" r="3.5" fill="#2062ae" style="animation-delay: 2.1s"/>
+            <circle class="signal" cx="400" cy="150" r="3.5" fill="#d14d21" style="animation-delay: 3.2s"/>
+            <circle class="signal" cx="180" cy="145" r="3.5" fill="#d14d21" style="animation-delay: 3.9s"/>
+          </g>
+        </svg>
+        <ol class="flow-list">
+          <li><strong>spec-shape</strong> — interview, one question at a time</li>
+          <li><strong>spec-amend</strong> — statements become the spec and a plan</li>
+          <li><strong>plan</strong> — the work list in docs/changes/active/</li>
+          <li class="flow-run"><strong>spec-run</strong> — implementer, reviewer, then the pin</li>
+          <li class="flow-report"><strong>report</strong> — Blocked on me, Changed, Found, Rulings</li>
+        </ol>
+        <p class="flow-park">A question about what the software does parks the task and returns to spec-shape.</p>
+        <p class="plate-caption">Fig. 1 — shape and amend while you are here; the run continues alone</p>
+        <div class="legend">
+          <span><i class="swatch build"></i> you, until the plan is settled</span>
+          <span><i class="swatch judge"></i> the run: how, logged as rulings</span>
+          <span><i class="swatch learn"></i> needs you: a parked question, then the report</span>
+        </div>
+      </div>
+    </div>
+    <div class="wrap">
+      <p>
+        Specs carry no version numbers. Git holds their history. The pin is
+        a content hash of the spec file: equal to the file means in sync,
+        different means an amendment awaits implementation,
+        <code>none</code> means the code does not exist yet.
+        <strong>The mismatch is the backlog.</strong>
+      </p>
+    </div>
+  </section>
+
+  <section id="decides">
+    <div class="wrap">
+      <span class="eyebrow">The line</span>
+      <h2>Who decides what</h2>
+      <p class="lead-in">
+        Observable behaviour is yours. How the code is built is the agent’s,
+        recorded when another engineer could reasonably have gone the other
+        way. A run never guesses what the software does.
+      </p>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead>
+            <tr><th>Moment</th><th>You</th><th>The agent</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="who ink-w" data-label="Moment">spec-shape</td>
+              <td data-label="You">Purpose, behaviour, edge cases, test seams, what is out of scope — one question at a time, recommendation first</td>
+              <td data-label="The agent">Reads the code, the specs, the glossary, the ADRs. Looks up any fact the code can answer.</td>
+            </tr>
+            <tr>
+              <td class="who ink-w" data-label="Moment">spec-amend</td>
+              <td data-label="You">Nothing new. It writes what you already approved.</td>
+              <td data-label="The agent">Allocates IDs, edits the spec, derives the plan. The pin stays where it is.</td>
+            </tr>
+            <tr>
+              <td class="who" data-label="Moment">readiness</td>
+              <td data-label="You">Open questions, verification commands, a red baseline, the end state, permissions</td>
+              <td data-label="The agent">Collects every question the run would otherwise stop for, and asks them before it starts.</td>
+            </tr>
+            <tr>
+              <td class="who" data-label="Moment">the run</td>
+              <td data-label="You">Nothing, until the report</td>
+              <td data-label="The agent">Decides how, logs each ruling, parks any question about what.</td>
+            </tr>
+            <tr>
+              <td class="who learn-w" data-label="Moment">the report</td>
+              <td data-label="You">Answers under Blocked on me. A look at the rulings.</td>
+              <td data-label="The agent">Leads with what needs you.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="triggers">
+    <div class="wrap">
+      <span class="eyebrow">Routing</span>
+      <h2>What triggers what</h2>
+      <p class="lead-in">
+        Three things can start a skill. Name it, describe the situation in
+        ordinary language, or let the session map do it. The skills then
+        hand off to each other.
+      </p>
+      <div class="cards">
+        <div class="card">
+          <h3>You name it</h3>
+          <span class="tech">slash command</span>
+          <p><code>/spec-system:spec-shape</code> interviews.
+          <code>/spec-system:spec-run</code> executes outstanding plans.
+          The same prefix covers init, adopt, amend, and the rest.</p>
+        </div>
+        <div class="card">
+          <h3>The session map</h3>
+          <span class="tech">every session</span>
+          <p>At startup, after <code>/clear</code>, and after compaction, a
+          hook injects a short skill map. “Let’s build…” routes to
+          spec-shape. “Run it overnight” routes to spec-run.</p>
+        </div>
+        <div class="card judge-card">
+          <h3>The prompt hook</h3>
+          <span class="tech">optional</span>
+          <p>With <code>OPENROUTER_API_KEY</code> set, and no run already
+          in progress, each prompt is matched to a skill. A confident
+          answer adds one line naming it. No key, a timeout, or a
+          low-confidence answer adds nothing.</p>
+        </div>
+      </div>
+
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead>
+            <tr><th>You say, or the repo looks like</th><th>Skill</th><th>What it does</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Situation">“let’s build”, “add a”, “make it”, “I want it to”, “should we” — behaviour not yet approved</td>
+              <td class="who ink-w" data-label="Skill">spec-shape</td>
+              <td data-label="What it does">Interviews, one question at a time. Writes no code and no spec.</td>
+            </tr>
+            <tr>
+              <td data-label="Situation">Statements are approved, or anomaly findings should become spec changes</td>
+              <td class="who ink-w" data-label="Skill">spec-amend</td>
+              <td data-label="What it does">Edits the spec and derives the plan. Leaves the pin alone.</td>
+            </tr>
+            <tr>
+              <td data-label="Situation">“run it”, “overnight”, “take it from here” — plans already exist</td>
+              <td class="who" data-label="Skill">spec-run</td>
+              <td data-label="What it does">Settles every remaining question, then runs the plans unattended.</td>
+            </tr>
+            <tr>
+              <td data-label="Situation">A plan exists and you are staying in the session</td>
+              <td class="who" data-label="Skill">spec-implement</td>
+              <td data-label="What it does">The same per-task loop, without the walk-away wrapper.</td>
+            </tr>
+            <tr>
+              <td data-label="Situation">Something is broken, failing, flaky, or slow</td>
+              <td class="who" data-label="Skill">debug</td>
+              <td data-label="What it does">A red loop first. Then a fix under the pin, or an amendment if the statement was wrong.</td>
+            </tr>
+            <tr>
+              <td data-label="Situation">Structure is hard to change or test. Behaviour stays the same.</td>
+              <td class="who" data-label="Skill">architecture</td>
+              <td data-label="What it does">A standalone plan. spec-run executes it. <code>archive</code> closes it.</td>
+            </tr>
+            <tr>
+              <td data-label="Situation">The repo has no <code>specs/</code></td>
+              <td class="who ink-w" data-label="Skill">spec-init</td>
+              <td data-label="What it does">Scaffolds the layer and stops for you. It adopts nothing.</td>
+            </tr>
+            <tr>
+              <td data-label="Situation">Existing code, a capability you have confirmed</td>
+              <td class="who ink-w" data-label="Skill">spec-adopt</td>
+              <td data-label="What it does">Describes what the code does today and pins that description. Fixes nothing.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>
+        spec-shape classifies before it interviews. When it is unsure, it
+        takes the heavier path. Complexity found midway moves the path up.
+      </p>
+      <div class="cards">
+        <div class="card">
+          <h3>A question</h3>
+          <span class="tech">stop</span>
+          <p>“Would this work?” becomes a prototype or a research note. The
+          verdict can become a statement later.</p>
+        </div>
+        <div class="card">
+          <h3>Small and unowned</h3>
+          <span class="tech">no spec</span>
+          <p>The flow already exists and no owned path is touched. A short
+          design, one explicit yes, then test-driven development.</p>
+        </div>
+        <div class="card">
+          <h3>Behavioural</h3>
+          <span class="tech">the interview</span>
+          <p>It changes what an owned capability does, adds a capability, or
+          is big enough to want a plan. Then spec-amend.</p>
+        </div>
+        <div class="card">
+          <h3>Several capabilities</h3>
+          <span class="tech">in order</span>
+          <p>One amendment per capability, in dependency order. Shape each
+          in turn.</p>
+        </div>
+      </div>
+      <p>
+        spec-run will not invent a plan. A feature with no plan goes back
+        to spec-shape.
+      </p>
+    </div>
+  </section>
+
+  <section id="which">
+    <div class="wrap">
+      <span class="eyebrow">Two situations</span>
+      <h2>Look at the repo</h2>
+      <p class="lead-in">
+        The size of the idea does not choose the walk. The state of
+        <code>specs/</code> does. spec-init forks internally: a repo with
+        no real history is greenfield; a repo with history is brownfield.
+      </p>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead>
+            <tr><th>What you find</th><th>Start here</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="What you find">No <code>specs/</code> yet</td>
+              <td data-label="Start here"><code>/spec-system:spec-init</code></td>
+            </tr>
+            <tr>
+              <td data-label="What you find">A capability is <code>unspecified</code> and the code exists</td>
+              <td data-label="Start here"><code>/spec-system:spec-adopt</code> — describe it before you change it</td>
+            </tr>
+            <tr>
+              <td data-label="What you find">A capability is pinned and you want different behaviour</td>
+              <td data-label="Start here"><code>/spec-system:spec-shape</code>, then spec-amend</td>
+            </tr>
+            <tr>
+              <td data-label="What you find"><code>registry.mjs check</code> reports an amendment outstanding, or a plan sits in <code>docs/changes/active/</code></td>
+              <td data-label="Start here"><code>/spec-system:spec-run</code> to leave, or spec-implement to stay</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="greenfield">
+    <div class="wrap">
+      <span class="eyebrow">Walk one</span>
+      <h2>Greenfield</h2>
+      <p class="lead-in">
+        No history for co-change to read, and nothing for spec-adopt to
+        describe. The first spec is a <strong>target</strong>.
+        <code>pinned: none</code> is the record that the code does not
+        exist yet.
+      </p>
+      <div class="console">
+<pre><span class="c"># once, in Claude Code</span>
+<span class="k">/plugin marketplace add</span> stjarnstrom/spec-system
+<span class="k">/plugin install</span> spec-system@stjarnstrom
+
+<span class="c"># in the empty repo</span>
+<span class="k">/spec-system:spec-init</span></pre>
+      </div>
+      <div class="start-steps">
+        <div class="start-step">
+          <div>
+            <h3>Scaffold, then stop</h3>
+            <p>
+              spec-init copies the registry, <code>FORMAT.md</code>, and a
+              pre-commit hook into <code>specs/</code>, and appends a short
+              section to the repo’s agent instructions. It fills the
+              verification commands — test, typecheck, lint — from the
+              manifest. With no history it skips the boundary proposal.
+              The first capability is named in the interview, and its
+              status stays <code>unspecified</code> until the first pin.
+            </p>
+          </div>
+        </div>
+        <div class="start-step">
+          <div>
+            <h3>Interview for the capability</h3>
+            <p>
+              Describe what you want, or run
+              <code>/spec-system:spec-shape</code>. One question per
+              message, recommendation first. You name the capability.
+              Facts come from whatever code exists; decisions come from you.
+            </p>
+          </div>
+        </div>
+        <div class="start-step">
+          <div>
+            <h3>Approve a target spec</h3>
+            <p>
+              The design is presented in sections: statements, test seams
+              and constraints, what is out of scope. Each approval covers
+              the section shown. spec-amend writes the target with
+              <code>pinned: none</code> and a plan in
+              <code>docs/changes/active/</code>. While the pin is
+              <code>none</code>, <code>check</code> notes owned paths that
+              are not on disk yet.
+            </p>
+          </div>
+        </div>
+        <div class="start-step">
+          <div>
+            <h3>Run it</h3>
+            <p>
+              <code>/spec-system:spec-run</code>. Answer the readiness
+              questions. Each task’s test must fail at the starting commit,
+              then go green. The last act is
+              <code>node specs/registry.mjs pin &lt;capability&gt;</code>:
+              the hash matches the file, the plan moves to
+              <code>docs/changes/completed/</code>, and status becomes
+              <code>adopted</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+      <p>
+        Later features on that repo are the ordinary loop. The pin
+        mismatch is the outstanding work.
+      </p>
+    </div>
+  </section>
+
+  <section id="brownfield">
+    <div class="wrap">
+      <span class="eyebrow">Walk two</span>
+      <h2>Brownfield</h2>
+      <p class="lead-in">
+        The code already exists. The first job is to describe it
+        truthfully, then change it spec-first. A pin that lies at birth
+        makes every later drift check worthless, so adoption changes no
+        product code.
+      </p>
+      <div class="start-steps">
+        <div class="start-step">
+          <div>
+            <h3>Propose boundaries, then you draw them</h3>
+            <p>
+              <code>/spec-system:spec-init</code> scaffolds the same
+              substrate, then clusters git history
+              (<code>cochange.py</code>, about 24 months). Proposed
+              capabilities, seams, and edges enter the registry as
+              <code>status: unspecified</code>. You confirm which lines
+              to keep. Nothing is adopted in that pass. Later,
+              <code>/spec-system:spec-boundaries</code> is the same
+              proposal when the code has moved on.
+            </p>
+          </div>
+        </div>
+        <div class="start-step">
+          <div>
+            <h3>Adopt one capability as it is</h3>
+            <p>
+              Start with the smallest confirmed capability that has real
+              tests. <code>/spec-system:spec-adopt</code> reads the owned
+              paths and the tests that touch them, and writes statements of
+              what the code does today — ugly behaviour included. Existing
+              tests become <code>verified-by</code>. Where nothing covers a
+              requirement, the statement stays <code>UNVERIFIED</code>.
+              Everything unjustified goes on
+              <code>specs/&lt;slug&gt;.anomalies.md</code>. Then it pins:
+              the hash says the code satisfies this description right now.
+            </p>
+          </div>
+        </div>
+        <div class="start-step">
+          <div>
+            <h3>Turn a wish into a delta</h3>
+            <p>
+              Wishes live on the anomaly list. Most of them never become
+              requirements. A change to what an adopted capability does
+              starts at spec-shape. Approved statements go to spec-amend,
+              which leaves the pin where it is. New behaviour gets a new
+              id: a verified statement is split, so its evidence stays
+              attached. An open <code>-U-</code> uncertainty is a hard stop
+              until you answer it.
+            </p>
+          </div>
+        </div>
+        <div class="start-step">
+          <div>
+            <h3>Run the delta</h3>
+            <p>
+              spec-run implements the plan. When every task is done and the
+              suite is green, the pin moves. Anything parked is partial
+              delivery: the pin stays, and the plan stays in
+              <code>active/</code>.
+            </p>
+          </div>
+        </div>
+      </div>
+      <p>
+        A bug does not automatically start spec-shape.
+        <code>/spec-system:debug</code> builds a red loop, then checks the
+        pinned statements. When a statement already requires the correct
+        behaviour, the fix is a regression test under the pin. When the
+        statement itself was wrong, that is an amendment.
+      </p>
+    </div>
+  </section>
+
+  <section id="run">
+    <div class="wrap">
+      <span class="eyebrow">Walk away</span>
+      <h2>Anatomy of a run</h2>
+      <p class="lead-in">
+        spec-run takes the plans you named, or every outstanding one:
+        capabilities whose spec differs from the pin, and standalone plans
+        in <code>docs/changes/active/</code>. A plan whose capability
+        depends on another outstanding capability runs after it.
+      </p>
+
+      <div class="timeline">
+        <div class="rail"></div>
+        <div class="event">
+          <span class="tplus">before</span>
+          <h3>Readiness</h3>
+          <p>
+            One question at a time, recommended answer first. Open
+            <code>-U-</code> questions a task depends on — answer now, or
+            accept that the task parks. <code>[human]</code> tasks. The
+            verification commands, and a baseline run of the suite. A red
+            baseline is your call: fix it first, or run anyway with those
+            failures recorded as pre-existing.
+          </p>
+          <p class="wire">end state · permissions · then a two-line summary</p>
+        </div>
+        <div class="event">
+          <span class="tplus">isolate</span>
+          <h3>A worktree, then the ledger</h3>
+          <p>
+            On the default branch the run works in a worktree
+            (<code>.worktrees/&lt;run-name&gt;</code>, branch
+            <code>spec-run/&lt;run-name&gt;</code>). Already on a feature
+            branch, it stays there. Dependencies install from the lockfile.
+            <code>run.mjs active set</code> marks the run so a later session
+            can resume from the plan and <code>git log</code>.
+          </p>
+          <p class="wire">end state: leave the branch · merge locally · push and open a PR</p>
+        </div>
+        <div class="event judge-dot">
+          <span class="tplus">each task</span>
+          <h3>Implementer, then reviewer</h3>
+          <p>
+            A fresh implementer writes the task test-first from a brief:
+            the statements verbatim, the owned paths, the test seam. A
+            reviewer judges the diff against those statement ids and for
+            quality. A task is ticked only when every statement it names is
+            <code>SATISFIED</code> and the tests are green. Fix rounds stop
+            at five. A statement still missing is never ruled away.
+          </p>
+          <p class="wire">how → a ruling in the plan’s run log · what → park that task</p>
+        </div>
+        <div class="event judge-dot">
+          <span class="tplus">last</span>
+          <h3>The pin moves</h3>
+          <p>
+            After a final review and a fresh run of check, the suite,
+            typecheck, and lint. <code>registry.mjs pin</code> records the
+            spec file’s hash and moves the plan to
+            <code>completed/</code>. A standalone plan — one that changes
+            no spec — is closed with <code>archive</code> instead.
+          </p>
+          <p class="wire">anything parked → the pin stays</p>
+        </div>
+        <div class="event learn-dot">
+          <span class="tplus">back</span>
+          <h3>The report</h3>
+          <p>
+            Integration follows the end state you chose. Pushing and opening
+            a pull request happen only on an explicit yes. Then the scratch
+            directory <code>.spec-run/</code> is removed. Git and the plans
+            are the record.
+          </p>
+          <p class="wire">Blocked on me · Changed · Found · Rulings</p>
+        </div>
+      </div>
+
+      <h3 class="subhead">Coming back</h3>
+      <div class="cards">
+        <div class="card learn-card">
+          <h3>Blocked on me</h3>
+          <span class="tech">answer these</span>
+          <p>Parked tasks, each with a one-line question. Answer them.
+          spec-amend folds each answer into the spec, rewrites the task,
+          and unparks it. Run spec-run again.</p>
+        </div>
+        <div class="card">
+          <h3>Changed</h3>
+          <span class="tech">what landed</span>
+          <p>Per plan: whether the pin moved, the statements now true, the
+          verified count, and where the work is — branch, pull request, or
+          merge.</p>
+        </div>
+        <div class="card">
+          <h3>Found</h3>
+          <span class="tech">left on the list</span>
+          <p>Anomalies, deferred minor review findings, and friction worth
+          a later fix. A rule the reviewer enforced by hand more than once
+          is a candidate invariant.</p>
+        </div>
+        <div class="card judge-card">
+          <h3>Rulings</h3>
+          <span class="tech">how it was built</span>
+          <p>Every implementation decision, with what it costs if wrong.
+          They also stay in the plan’s run log after the plan moves to
+          <code>completed/</code>.</p>
+        </div>
+      </div>
+      <p>
+        A run stops early only for an irreversible or destructive
+        operation, a security-sensitive action, a side effect outside the
+        repository you did not authorise, or every remaining task parked.
+        A behaviour question parks one task. A red test is more work.
+      </p>
+    </div>
+  </section>
+
+  <section id="pin">
+    <div class="wrap">
+      <span class="eyebrow">The backlog</span>
+      <h2>The pin</h2>
+      <p class="lead-in">
+        <code>specs/registry.yaml</code> records, per capability, the hash
+        of the spec file the code satisfies. Specs have no version numbers.
+        Equal, different, or <code>none</code> is the whole status.
+      </p>
+      <div class="cards">
+        <div class="card">
+          <h3>Equal</h3>
+          <span class="tech">in sync</span>
+          <p>The file hash matches <code>pinned</code>. No outstanding
+          amendment. <code>check</code> is quiet about this capability.</p>
+        </div>
+        <div class="card learn-card">
+          <h3>Different</h3>
+          <span class="tech">amendment outstanding</span>
+          <p>Someone edited the spec and left the pin. <code>check</code>
+          demands a <code>plan:</code>. That plan is the work list.</p>
+        </div>
+        <div class="card judge-card">
+          <h3>none</h3>
+          <span class="tech">code does not exist yet</span>
+          <p>A greenfield target. <code>check</code> notes owned paths that
+          are not on disk. The first successful run replaces
+          <code>none</code> with the file’s hash.</p>
+        </div>
+      </div>
+      <div class="console">
+<pre><span class="c"># the mismatch is the backlog</span>
+<span class="k">node specs/registry.mjs check</span>
+
+<span class="c"># which capability owns these files</span>
+<span class="k">node specs/registry.mjs owns</span> path/to/file.ts
+
+<span class="c"># last act of a finished plan — moves the pin, archives the plan</span>
+<span class="k">node specs/registry.mjs pin</span> &lt;capability&gt;</pre>
+      </div>
+      <p>
+        Statement ids are permanent: requirements <code>PREFIX-NNN</code>,
+        invariants <code>PREFIX-I-NNN</code>, uncertainties
+        <code>PREFIX-U-NNN</code>. Withdrawn statements keep their heading.
+        Ids are never renumbered and never reused.
+      </p>
+
+      <h3 class="subhead">Where a run lives on disk</h3>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead>
+            <tr><th>Path</th><th>What it is</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="Path"><code>specs/&lt;slug&gt;.md</code></td>
+              <td data-label="What it is">The capability, present tense. No history, no rationale.</td>
+            </tr>
+            <tr>
+              <td data-label="Path"><code>specs/&lt;slug&gt;.anomalies.md</code></td>
+              <td data-label="What it is">What the code does that nothing justifies. The input to a later amendment.</td>
+            </tr>
+            <tr>
+              <td data-label="Path"><code>specs/registry.yaml</code></td>
+              <td data-label="What it is">Capabilities, owned paths, the pin, dependency edges, seams.</td>
+            </tr>
+            <tr>
+              <td data-label="Path"><code>docs/changes/active/</code></td>
+              <td data-label="What it is">Outstanding plans. The run log inside each plan is the ledger.</td>
+            </tr>
+            <tr>
+              <td data-label="Path"><code>docs/changes/completed/</code></td>
+              <td data-label="What it is">Plans whose pin has moved, or standalone plans that were archived.</td>
+            </tr>
+            <tr>
+              <td data-label="Path"><code>docs/adr/</code></td>
+              <td data-label="What it is">Rationale, when a decision is hard to reverse, surprising, and a real trade-off.</td>
+            </tr>
+            <tr>
+              <td data-label="Path"><code>.spec-run/</code></td>
+              <td data-label="What it is">Scratch for one run: briefs, reports, diffs. Removed when the run ends.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="fieldnotes">
+    <div class="wrap">
+      <span class="eyebrow learn-eb">When it feels wrong</span>
+      <h2>Field notes</h2>
+      <p class="lead-in">
+        The skills stop on purpose at a few places. Each one is a question
+        only you can answer, or a rule that keeps the pin honest.
+      </p>
+      <div class="tbl-scroll">
+        <table class="tbl">
+          <thead>
+            <tr><th>What you see</th><th>What it means</th><th>What you do</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td data-label="What you see">You said “let’s build” and code started appearing</td>
+              <td data-label="What it means">The change was classified as small and unowned, or no skill was named</td>
+              <td data-label="What you do">Invoke <code>/spec-system:spec-shape</code>. When the work is bigger than a one-yes design, the interview writes a plan before any product code.</td>
+            </tr>
+            <tr>
+              <td data-label="What you see"><code>/spec-run</code> points you at spec-shape</td>
+              <td data-label="What it means">There is no plan yet. The run executes plans.</td>
+              <td data-label="What you do">Finish the interview and the amendment. Then run.</td>
+            </tr>
+            <tr>
+              <td data-label="What you see">A task is parked</td>
+              <td data-label="What it means">A question about observable behaviour came up, or an open <code>-U-</code> was left for later</td>
+              <td data-label="What you do">Answer it. spec-amend folds the answer into the spec and unparks the task. The next spec-run picks it up. Any commits sit on <code>spec-run/parked-&lt;T&gt;</code>.</td>
+            </tr>
+            <tr>
+              <td data-label="What you see">The pin did not move</td>
+              <td data-label="What it means">Partial delivery. Something is still parked, or the suite was red.</td>
+              <td data-label="What you do">Read Blocked on me. The plan stays in <code>docs/changes/active/</code>. The file/pin mismatch is the record.</td>
+            </tr>
+            <tr>
+              <td data-label="What you see">The suite was already red</td>
+              <td data-label="What it means">Readiness ran the tests on the starting commit</td>
+              <td data-label="What you do">Fix the baseline first, or tell the run to continue and record those failures as pre-existing.</td>
+            </tr>
+            <tr>
+              <td data-label="What you see">The run is sitting on a permission prompt</td>
+              <td data-label="What it means">The session cannot edit files or run the verification commands unprompted</td>
+              <td data-label="What you do">Switch to auto mode, or add allow rules for those commands. The run does not change permission settings itself.</td>
+            </tr>
+            <tr>
+              <td data-label="What you see">Adoption started fixing the code</td>
+              <td data-label="What it means">The pin would describe a wish, and every later drift check would be worthless</td>
+              <td data-label="What you do">Keep the product diff empty. Wishes belong on <code>*.anomalies.md</code>. Desired behaviour is the next amendment.</td>
+            </tr>
+            <tr>
+              <td data-label="What you see">A verified statement grew a new clause</td>
+              <td data-label="What it means">Widening detaches its evidence. The old test still passes and now proves less than the spec claims.</td>
+              <td data-label="What you do">Leave the verified statement under its id. Put the new behaviour in the next free id.</td>
+            </tr>
+            <tr>
+              <td data-label="What you see">You want to change the software mid-run</td>
+              <td data-label="What it means">A change to how is a ruling. A change to what is a spec change.</td>
+              <td data-label="What you do">Send it. The run parks the affected tasks, spec-amend takes the change, and the tasks resume.</td>
+            </tr>
+            <tr>
+              <td data-label="What you see">A session starts and a run is already marked active</td>
+              <td data-label="What it means">Compaction, or a new session, during a run</td>
+              <td data-label="What you do">Leave it. spec-run resumes from <code>run.mjs status</code> and the plan’s checkboxes. It does not restart.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="subhead">Other doors</h3>
+      <div class="cards">
+        <div class="card">
+          <h3>debug</h3>
+          <span class="tech">a bug</span>
+          <p>A red feedback loop before any theory. Then either a fix under the pin, with the regression test as <code>verified-by</code>, or an amendment when the statement was wrong.</p>
+        </div>
+        <div class="card">
+          <h3>architecture</h3>
+          <span class="tech">structure</span>
+          <p>Ranks deepening candidates and writes a standalone plan (<code>capability: none</code>). spec-run executes it. <code>archive</code> closes it. No pin moves.</p>
+        </div>
+        <div class="card">
+          <h3>review</h3>
+          <span class="tech">a branch or PR</span>
+          <p>Spec and standards in separate passes. Comments you received are the same skill’s second half.</p>
+        </div>
+        <div class="card">
+          <h3>finish</h3>
+          <span class="tech">after the run</span>
+          <p>Verify, then merge locally, push and open a pull request, or keep the branch. Worktrees are removed only when git agrees they are clean.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>
+      Deeper reading:
+      <a href="https://github.com/stjarnstrom/spec-system/blob/main/README.md">README</a> ·
+      <a href="https://github.com/stjarnstrom/spec-system/blob/main/docs/ONBOARDING.md">onboarding</a> ·
+      <a href="https://github.com/stjarnstrom/spec-system/blob/main/docs/WORKFLOW.md">workflow</a> ·
+      <a href="https://github.com/stjarnstrom/spec-system/blob/main/docs/DESIGN.md">design</a> ·
+      <a href="https://github.com/stjarnstrom/spec-system/blob/main/docs/KNOWLEDGE.md">knowledge layout</a>
+    </p>
+  </div>
+</footer>
+</body>
+</html>

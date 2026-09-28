@@ -22,7 +22,9 @@ exist yet.
 
 Then, in a repo: `/spec-system:spec-init`. [docs/ONBOARDING.md](docs/ONBOARDING.md)
 is the first hour; [docs/WORKFLOW.md](docs/WORKFLOW.md) is the full loop,
-including how to walk away from a run.
+including how to walk away from a run. The visual walkthrough is the
+[field guide](https://stjarnstrom.github.io/spec-system/guide/)
+(source: [`docs/guide/`](docs/guide/)).
 
 ## The loop
 
