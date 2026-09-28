@@ -163,6 +163,13 @@
     grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
     gap: 0.9rem; margin: 2rem 0; min-width: 0;
   }
+  /* Four peers: two columns, so the last card is not left alone. */
+  .cards.pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Three peers: one row on the wide measure. Two-plus-one is worse than a stack. */
+  .cards.trio { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 860px) {
+    .cards.trio { grid-template-columns: 1fr; }
+  }
   .card {
     background: var(--panel); border-radius: 10px; padding: 1.15rem 1.25rem;
     min-width: 0; max-width: 100%;
@@ -295,7 +302,7 @@
       font-size: 0.75rem; line-height: 1.45; color: var(--learn);
     }
     .start-step { grid-template-columns: 2rem minmax(0, 1fr); gap: 0.65rem; }
-    .cards, .duo { grid-template-columns: 1fr; }
+    .cards, .cards.pair, .cards.trio, .duo { grid-template-columns: 1fr; }
     .timeline { padding-left: 1.6rem; }
     .rail { left: 0; }
     .tplus { position: static; display: block; width: auto; text-align: left; margin-bottom: 0.2rem; }
@@ -505,7 +512,9 @@
         ordinary language, or let the session map do it. The skills then
         hand off to each other.
       </p>
-      <div class="cards">
+    </div>
+    <div class="wrap-wide">
+      <div class="cards trio">
         <div class="card">
           <h3>You name it</h3>
           <span class="tech">slash command</span>
@@ -529,7 +538,8 @@
           low-confidence answer adds nothing.</p>
         </div>
       </div>
-
+    </div>
+    <div class="wrap">
       <div class="tbl-scroll">
         <table class="tbl">
           <thead>
@@ -584,7 +594,7 @@
         spec-shape classifies before it interviews. When it is unsure, it
         takes the heavier path. Complexity found midway moves the path up.
       </p>
-      <div class="cards">
+      <div class="cards pair">
         <div class="card">
           <h3>A question</h3>
           <span class="tech">stop</span>
@@ -890,7 +900,7 @@
       </div>
 
       <h3 class="subhead">Coming back</h3>
-      <div class="cards">
+      <div class="cards pair">
         <div class="card learn-card">
           <h3>Blocked on me</h3>
           <span class="tech">answer these</span>
@@ -1086,7 +1096,7 @@
       </div>
 
       <h3 class="subhead">Other doors</h3>
-      <div class="cards">
+      <div class="cards pair">
         <div class="card">
           <h3>debug</h3>
           <span class="tech">a bug</span>
